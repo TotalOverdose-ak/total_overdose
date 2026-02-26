@@ -1,3 +1,24 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+*.iml
+.metadata
+.flutter-plugins
+.flutter-plugins-dependencies
+**/.dart_tool/
+**/build/
+**/*.iml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Windows reserved names
+nul
+
 # Logs
 logs
 *.log
