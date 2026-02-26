@@ -83,7 +83,7 @@ class _AgriVistaBottomNav extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
           child: Row(
             children: items.asMap().entries.map((entry) {
               final i = entry.key;
@@ -99,7 +99,7 @@ class _AgriVistaBottomNav extends StatelessWidget {
                     curve: Curves.easeInOut,
                     padding: const EdgeInsets.symmetric(
                       vertical: 6,
-                      horizontal: 4,
+                      horizontal: 2,
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
@@ -121,11 +121,11 @@ class _AgriVistaBottomNav extends StatelessWidget {
                             size: 24,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text(
                           item.label,
                           style: GoogleFonts.poppins(
-                            fontSize: 11,
+                            fontSize: 9.5,
                             fontWeight: isSelected
                                 ? FontWeight.w700
                                 : FontWeight.w400,
@@ -133,6 +133,8 @@ class _AgriVistaBottomNav extends StatelessWidget {
                                 ? AppColors.primaryGreen
                                 : AppColors.textLight,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ],
                     ),

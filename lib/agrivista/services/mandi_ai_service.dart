@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 /// browser CORS. Features: Translation, Smart Negotiation, Price insights, AI Chat.
 class MandiAIService {
   // ── Gemini Configuration ─────────────────────────────────────────────────
-  static const String _apiKey = 'AIzaSyCRPu7QSFgUnBeu2SkmDzhvunJjYJ4sEQk';
+  static const String _apiKey = 'AIzaSyBgN4ijOo--Tquajvv1_D8A8ifi6U8Tw_4';
   static const String _model = 'gemini-2.0-flash';
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
@@ -48,10 +48,7 @@ class MandiAIService {
   }
 
   /// Makes the actual Gemini REST API call with retry logic.
-  static Future<String> _callGemini(
-    String prompt, {
-    int retries = 2,
-  }) async {
+  static Future<String> _callGemini(String prompt, {int retries = 2}) async {
     Exception? lastError;
 
     for (int attempt = 0; attempt <= retries; attempt++) {
@@ -71,9 +68,9 @@ class MandiAIService {
                 'contents': [
                   {
                     'parts': [
-                      {'text': prompt}
-                    ]
-                  }
+                      {'text': prompt},
+                    ],
+                  },
                 ],
                 'generationConfig': {
                   'temperature': 0.7,
@@ -84,9 +81,7 @@ class MandiAIService {
             .timeout(const Duration(seconds: 30));
 
         if (response.statusCode != 200) {
-          debugPrint(
-            'Gemini error: ${response.statusCode} ${response.body}',
-          );
+          debugPrint('Gemini error: ${response.statusCode} ${response.body}');
           throw Exception(
             'Gemini API error ${response.statusCode}: ${response.body}',
           );
@@ -110,9 +105,7 @@ class MandiAIService {
         }
         return text.trim();
       } catch (e) {
-        debugPrint(
-          'MandiAIService._callGemini error (attempt $attempt): $e',
-        );
+        debugPrint('MandiAIService._callGemini error (attempt $attempt): $e');
         lastError = e is Exception ? e : Exception(e.toString());
       }
     }
@@ -140,9 +133,13 @@ class MandiAIService {
       final geminiRole = (role == 'assistant') ? 'model' : 'user';
       contents.add({
         'role': geminiRole,
-        'parts': [{'text': role == 'user' && systemText.isNotEmpty && contents.isEmpty
-            ? '$systemText\n$text'
-            : text}],
+        'parts': [
+          {
+            'text': role == 'user' && systemText.isNotEmpty && contents.isEmpty
+                ? '$systemText\n$text'
+                : text,
+          },
+        ],
       });
     }
 
@@ -155,7 +152,9 @@ class MandiAIService {
     if (contents.isNotEmpty && contents[0]['role'] != 'user') {
       contents.insert(0, {
         'role': 'user',
-        'parts': [{'text': systemText.isNotEmpty ? systemText : 'Hello'}],
+        'parts': [
+          {'text': systemText.isNotEmpty ? systemText : 'Hello'},
+        ],
       });
     }
 
@@ -182,7 +181,9 @@ class MandiAIService {
             .timeout(const Duration(seconds: 30));
 
         if (response.statusCode != 200) {
-          throw Exception('Gemini API error ${response.statusCode}: ${response.body}');
+          throw Exception(
+            'Gemini API error ${response.statusCode}: ${response.body}',
+          );
         }
 
         final json = jsonDecode(response.body) as Map<String, dynamic>;
@@ -262,11 +263,14 @@ $text''';
     String priceAnalysis = '';
     if (mandiPriceData != null) {
       final markup = mandiPriceData.markupPercent;
-      final fairRange = '₹${mandiPriceData.minPrice.toStringAsFixed(0)}-₹${mandiPriceData.maxPrice.toStringAsFixed(0)}/quintal';
-      final modalStr = '₹${mandiPriceData.modalPrice.toStringAsFixed(0)}/quintal';
+      final fairRange =
+          '₹${mandiPriceData.minPrice.toStringAsFixed(0)}-₹${mandiPriceData.maxPrice.toStringAsFixed(0)}/quintal';
+      final modalStr =
+          '₹${mandiPriceData.modalPrice.toStringAsFixed(0)}/quintal';
       final suggestedTarget = mandiPriceData.suggestedBargainPrice;
 
-      priceAnalysis = '''
+      priceAnalysis =
+          '''
 REAL MANDI DATA (data.gov.in):
 - Market: ${mandiPriceData.market}, ${mandiPriceData.district}
 - Min Price: ₹${mandiPriceData.minPrice.toStringAsFixed(0)}/quintal
@@ -279,7 +283,8 @@ REAL MANDI DATA (data.gov.in):
 ANALYSIS:
 ${_getVerdictFromMarkup(markup)}''';
     } else {
-      priceAnalysis = 'No real mandi data available. Use general market knowledge for Feb 2026.';
+      priceAnalysis =
+          'No real mandi data available. Use general market knowledge for Feb 2026.';
     }
 
     final prompt =
@@ -328,9 +333,12 @@ NO markdown. NO bullets. NO asterisks. Write as flowing text.''';
 
   /// Get verdict text from markup percentage
   static String _getVerdictFromMarkup(double markup) {
-    if (markup <= 5) return 'FAIR PRICE — Close to market rate. Minor bargain possible.';
-    if (markup <= 15) return 'SLIGHTLY HIGH — 5-15% above market. Bargain down to modal.';
-    if (markup <= 30) return 'OVERPRICED — Significant markup. Push hard toward modal price.';
+    if (markup <= 5)
+      return 'FAIR PRICE — Close to market rate. Minor bargain possible.';
+    if (markup <= 15)
+      return 'SLIGHTLY HIGH — 5-15% above market. Bargain down to modal.';
+    if (markup <= 30)
+      return 'OVERPRICED — Significant markup. Push hard toward modal price.';
     return 'VERY OVERPRICED — $markup% above market! Walk away or demand modal rate.';
   }
 
@@ -442,10 +450,14 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
     if (error.contains('400')) {
       return 'Invalid request. Please rephrase and try again.';
     }
-    if (error.contains('401') || error.contains('403') || error.contains('API_KEY')) {
+    if (error.contains('401') ||
+        error.contains('403') ||
+        error.contains('API_KEY')) {
       return 'API key issue detected. Please check the Gemini API key.';
     }
-    if (error.contains('429') || error.contains('rate') || error.contains('RESOURCE_EXHAUSTED')) {
+    if (error.contains('429') ||
+        error.contains('rate') ||
+        error.contains('RESOURCE_EXHAUSTED')) {
       return 'Too many requests! Please wait a moment and try again.';
     }
     if (error.contains('timeout') || error.contains('TimeoutException')) {
@@ -538,8 +550,9 @@ class MandiPriceContext {
   });
 
   /// How much % above/below modal the vendor is charging
-  double get markupPercent =>
-      modalPrice > 0 ? ((vendorPriceNumeric - modalPrice) / modalPrice) * 100 : 0;
+  double get markupPercent => modalPrice > 0
+      ? ((vendorPriceNumeric - modalPrice) / modalPrice) * 100
+      : 0;
 
   /// Smart suggested bargain target:
   /// - If vendor > max: target = modal + 5%

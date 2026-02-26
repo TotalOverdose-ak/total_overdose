@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../services/market_recommendation_service.dart';
+import '../services/export_price_service.dart';
+import '../services/osrm_distance_service.dart';
 
 /// Provider that orchestrates market recommendation analysis.
 ///
 /// Fetches multi-market data → scores → ranks → generates AI summary.
+/// Also fetches export prices (Frankfurter API) and real distances (OSRM).
 /// This is DECISION INTELLIGENCE, not just price display.
 class MarketRecommendationProvider extends ChangeNotifier {
   // ── State ─────────────────────────────────────────────────────────────────
@@ -18,6 +21,11 @@ class MarketRecommendationProvider extends ChangeNotifier {
   String _userCity = 'Nagpur';
   String _userState = 'Maharashtra';
 
+  // ── NEW: Export Price & Real Distance ─────────────────────────────────────
+  ExportPriceResult? _exportPriceResult;
+  ExchangeRates? _exchangeRates;
+  RouteInfo? _topMarketRoute;
+
   // ── Getters ───────────────────────────────────────────────────────────────
   List<MarketScore> get rankedMarkets => _rankedMarkets;
   MarketScore? get topRecommendation => _topRecommendation;
@@ -27,6 +35,9 @@ class MarketRecommendationProvider extends ChangeNotifier {
   String get selectedCrop => _selectedCrop;
   String get userCity => _userCity;
   String get userState => _userState;
+  ExportPriceResult? get exportPriceResult => _exportPriceResult;
+  ExchangeRates? get exchangeRates => _exchangeRates;
+  RouteInfo? get topMarketRoute => _topMarketRoute;
 
   // ── Crop & Location Setters ───────────────────────────────────────────────
   void setCrop(String crop) {
@@ -51,13 +62,18 @@ class MarketRecommendationProvider extends ChangeNotifier {
     _rankedMarkets = [];
     _topRecommendation = null;
     _aiSummary = null;
+    _exportPriceResult = null;
+    _exchangeRates = null;
+    _topMarketRoute = null;
     notifyListeners();
 
     try {
       // ── Step 1: Fetch market data ─────────────────────────────────────
       debugPrint('MarketRec: Fetching data for $_selectedCrop...');
-      final entries = await MarketRecommendationService.fetchMarketsForCommodity(
-          _selectedCrop);
+      final entries =
+          await MarketRecommendationService.fetchMarketsForCommodity(
+            _selectedCrop,
+          );
 
       if (entries.isEmpty) {
         _error = 'No market data found for $_selectedCrop';
@@ -80,16 +96,56 @@ class MarketRecommendationProvider extends ChangeNotifier {
       }
 
       debugPrint(
-          'MarketRec: Ranked ${_rankedMarkets.length} markets. Top: ${_topRecommendation?.market}');
+        'MarketRec: Ranked ${_rankedMarkets.length} markets. Top: ${_topRecommendation?.market}',
+      );
 
-      // ── Step 3: Generate AI summary ───────────────────────────────────
-      await _generateAISummary(language ?? 'Hinglish');
+      // ── Step 3: Fetch export prices, OSRM distance & AI summary in parallel
+      await Future.wait([
+        _generateAISummary(language ?? 'Hinglish'),
+        _fetchExportPrices(),
+        _fetchRealDistance(),
+      ]);
     } catch (e) {
       debugPrint('MarketRec error: $e');
-      _error = 'Analysis failed: ${e.toString().length > 80 ? e.toString().substring(0, 80) : e}';
+      _error =
+          'Analysis failed: ${e.toString().length > 80 ? e.toString().substring(0, 80) : e}';
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // ── Export Price Fetching (Frankfurter API — FREE) ────────────────────────
+  Future<void> _fetchExportPrices() async {
+    try {
+      _exchangeRates = await ExportPriceService.fetchRates();
+      if (_exchangeRates != null && _topRecommendation != null) {
+        _exportPriceResult = ExportPriceService.calculateExportPrice(
+          priceInrPerQuintal: _topRecommendation!.modalPrice,
+          rates: _exchangeRates!,
+          crop: _selectedCrop,
+        );
+      }
+    } catch (e) {
+      debugPrint('ExportPrice fetch error: $e');
+    }
+  }
+
+  // ── Real Distance Fetching (OSRM — FREE) ─────────────────────────────────
+  Future<void> _fetchRealDistance() async {
+    try {
+      if (_topRecommendation == null) return;
+      _topMarketRoute = await OsrmDistanceService.getRoute(
+        fromCity: _userCity,
+        toCity: _topRecommendation!.market,
+      );
+      if (_topMarketRoute != null) {
+        debugPrint(
+          'OSRM: ${_userCity} → ${_topRecommendation!.market} = ${_topMarketRoute!.distanceLabel} (${_topMarketRoute!.durationLabel})',
+        );
+      }
+    } catch (e) {
+      debugPrint('OSRM fetch error: $e');
     }
   }
 
@@ -99,26 +155,31 @@ class MarketRecommendationProvider extends ChangeNotifier {
 
     try {
       final top = _topRecommendation!;
-      final allMarketLines = _rankedMarkets.take(6).map((m) {
-        return '${m.market} (${m.district}, ${m.state}): Modal ₹${m.modalPrice.toStringAsFixed(0)}, '
-            'Net ₹${m.netProfit.toStringAsFixed(0)}, '
-            'Travel ₹${m.estimatedTravelCost.toStringAsFixed(0)}, '
-            'Regional ${m.regionalDiffPercent >= 0 ? '+' : ''}${m.regionalDiffPercent.toStringAsFixed(1)}%, '
-            'Volatility ${(m.volatility * 100).toStringAsFixed(0)}%, '
-            'Arrivals ${m.arrivalCount}, '
-            'Score ${m.overallScore.toStringAsFixed(0)}/100';
-      }).join('\n');
+      final allMarketLines = _rankedMarkets
+          .take(6)
+          .map((m) {
+            return '${m.market} (${m.district}, ${m.state}): Modal ₹${m.modalPrice.toStringAsFixed(0)}, '
+                'Net ₹${m.netProfit.toStringAsFixed(0)}, '
+                'Travel ₹${m.estimatedTravelCost.toStringAsFixed(0)}, '
+                'Regional ${m.regionalDiffPercent >= 0 ? '+' : ''}${m.regionalDiffPercent.toStringAsFixed(1)}%, '
+                'Volatility ${(m.volatility * 100).toStringAsFixed(0)}%, '
+                'Arrivals ${m.arrivalCount}, '
+                'Score ${m.overallScore.toStringAsFixed(0)}/100';
+          })
+          .join('\n');
 
       String langInstr = '';
       if (language == 'Hindi') {
         langInstr = 'Respond ENTIRELY in Hindi (Devanagari script).';
       } else if (language == 'Hinglish') {
-        langInstr = 'Respond in Hinglish (Hindi-English mix, Roman script). Use "bhaiya", "dekho" style naturally.';
+        langInstr =
+            'Respond in Hinglish (Hindi-English mix, Roman script). Use "bhaiya", "dekho" style naturally.';
       } else {
         langInstr = 'Respond in simple English.';
       }
 
-      final prompt = '''You are an expert agricultural market advisor for Indian farmers.
+      final prompt =
+          '''You are an expert agricultural market advisor for Indian farmers.
 
 FARMER'S SITUATION:
 - Crop: ${top.commodity}
@@ -145,7 +206,7 @@ Give a brief (under 80 words), practical recommendation explaining:
 
 Be direct, confident, and data-driven. No markdown. No bullets. Write as flowing text like a trusted advisor.''';
 
-      const apiKey = 'AIzaSyCRPu7QSFgUnBeu2SkmDzhvunJjYJ4sEQk';
+      const apiKey = 'AIzaSyBgN4ijOo--Tquajvv1_D8A8ifi6U8Tw_4';
       const model = 'gemini-2.0-flash';
       const url =
           'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
@@ -158,14 +219,11 @@ Be direct, confident, and data-driven. No markdown. No bullets. Write as flowing
               'contents': [
                 {
                   'parts': [
-                    {'text': prompt}
-                  ]
-                }
+                    {'text': prompt},
+                  ],
+                },
               ],
-              'generationConfig': {
-                'temperature': 0.7,
-                'maxOutputTokens': 300,
-              },
+              'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 300},
             }),
           )
           .timeout(const Duration(seconds: 30));
@@ -174,8 +232,7 @@ Be direct, confident, and data-driven. No markdown. No bullets. Write as flowing
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final candidates = json['candidates'] as List<dynamic>?;
         if (candidates != null && candidates.isNotEmpty) {
-          final content =
-              candidates[0]['content'] as Map<String, dynamic>?;
+          final content = candidates[0]['content'] as Map<String, dynamic>?;
           final parts = content?['parts'] as List<dynamic>?;
           final text = parts?[0]['text'] as String? ?? '';
           if (text.trim().isNotEmpty) {
@@ -228,7 +285,14 @@ Be direct, confident, and data-driven. No markdown. No bullets. Write as flowing
 
   // ── Major states for user location ────────────────────────────────────────
   static const Map<String, List<String>> stateCities = {
-    'Maharashtra': ['Nagpur', 'Pune', 'Mumbai', 'Nashik', 'Aurangabad', 'Amravati'],
+    'Maharashtra': [
+      'Nagpur',
+      'Pune',
+      'Mumbai',
+      'Nashik',
+      'Aurangabad',
+      'Amravati',
+    ],
     'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur', 'Ujjain', 'Khandwa'],
     'Rajasthan': ['Jaipur', 'Jodhpur', 'Kota', 'Udaipur'],
     'Uttar Pradesh': ['Lucknow', 'Agra', 'Kanpur', 'Varanasi'],

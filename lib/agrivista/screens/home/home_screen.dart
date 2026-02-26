@@ -8,8 +8,10 @@ import '../../providers/weather_provider.dart';
 import '../../widgets/weather_strip.dart';
 import '../../widgets/motivational_quote_card.dart';
 import '../../widgets/floating_mic_button.dart';
+import '../../services/agri_news_service.dart';
 import '../result/result_screen.dart';
 import '../weather/weather_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -197,6 +199,16 @@ class _HomeScreenState extends State<HomeScreen>
                             const SizedBox(height: 22),
                             // Motivational quote
                             const MotivationalQuoteCard(),
+                            const SizedBox(height: 22),
+                            // Government Schemes
+                            _SectionLabel(
+                              label: 'Govt Schemes For You',
+                              emoji: '🏛️',
+                            ),
+                            const SizedBox(height: 8),
+                            _GovSchemesSection(
+                              crop: _selectedCrop?.name ?? 'Wheat',
+                            ),
                           ],
                         ),
                       ),
@@ -727,6 +739,90 @@ class _GetRecommendationButtonState extends State<_GetRecommendationButton>
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Government Schemes Section (AgriNewsService — FREE, NO KEY) ─────────────
+class _GovSchemesSection extends StatelessWidget {
+  final String crop;
+
+  const _GovSchemesSection({required this.crop});
+
+  @override
+  Widget build(BuildContext context) {
+    final schemes = AgriNewsService.getRelevantSchemes(crop);
+
+    return Column(
+      children: schemes.take(5).map((scheme) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GestureDetector(
+            onTap: () async {
+              final uri = Uri.parse(scheme.url);
+              try {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } catch (_) {}
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+              ),
+              child: Row(
+                children: [
+                  Text(scheme.emoji, style: const TextStyle(fontSize: 24)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          scheme.name,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          scheme.description,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.greenAccent.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      scheme.benefit,
+                      style: GoogleFonts.poppins(
+                        color: Colors.greenAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../providers/market_recommendation_provider.dart';
 import '../providers/language_provider.dart';
 import '../services/market_recommendation_service.dart';
+import '../services/export_price_service.dart';
+import '../services/osrm_distance_service.dart';
 import '../theme/app_colors.dart';
 
 class MarketRecommendationScreen extends StatefulWidget {
@@ -136,6 +138,18 @@ class _MarketRecommendationScreenState
               _buildTransitRiskCard(lang, rec.topRecommendation!),
             ],
 
+            // ── Real Road Distance Card (OSRM API — FREE) ──────────────
+            if (rec.topMarketRoute != null) ...[
+              const SizedBox(height: 16),
+              _buildRealDistanceCard(lang, rec.topMarketRoute!),
+            ],
+
+            // ── Export Price Card (Frankfurter API — FREE) ──────────────
+            if (rec.exportPriceResult != null) ...[
+              const SizedBox(height: 16),
+              _buildExportPriceCard(lang, rec.exportPriceResult!),
+            ],
+
             // ── "Why This Market?" Explainability Panel ─────────────────
             if (rec.topRecommendation != null) ...[
               const SizedBox(height: 16),
@@ -163,14 +177,14 @@ class _MarketRecommendationScreenState
               ),
               const SizedBox(height: 12),
               ...rec.rankedMarkets.asMap().entries.map(
-                    (entry) => _buildMarketRankCard(
-                      context,
-                      lang,
-                      entry.value,
-                      entry.key + 1,
-                      isTop: entry.key == 0,
-                    ),
-                  ),
+                (entry) => _buildMarketRankCard(
+                  context,
+                  lang,
+                  entry.value,
+                  entry.key + 1,
+                  isTop: entry.key == 0,
+                ),
+              ),
             ],
 
             const SizedBox(height: 40),
@@ -184,7 +198,10 @@ class _MarketRecommendationScreenState
   // INPUT CARD
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildInputCard(
-      BuildContext context, LanguageProvider lang, MarketRecommendationProvider rec) {
+    BuildContext context,
+    LanguageProvider lang,
+    MarketRecommendationProvider rec,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -220,8 +237,10 @@ class _MarketRecommendationScreenState
                 onTap: () => rec.setCrop(crop),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFF2E7D32)
@@ -237,7 +256,9 @@ class _MarketRecommendationScreenState
                     '${_cropEmoji(crop)} $crop',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                       color: isSelected ? Colors.white : AppColors.textDark,
                     ),
                   ),
@@ -272,8 +293,10 @@ class _MarketRecommendationScreenState
                     border: Border.all(color: AppColors.divider),
                   ),
                   child: DropdownButton<String>(
-                    value: MarketRecommendationProvider.stateCities
-                            .containsKey(rec.userState)
+                    value:
+                        MarketRecommendationProvider.stateCities.containsKey(
+                          rec.userState,
+                        )
                         ? rec.userState
                         : 'Maharashtra',
                     isExpanded: true,
@@ -283,11 +306,15 @@ class _MarketRecommendationScreenState
                       color: AppColors.textDark,
                     ),
                     items: MarketRecommendationProvider.stateCities.keys
-                        .map((state) => DropdownMenuItem(
-                              value: state,
-                              child: Text(state,
-                                  style: GoogleFonts.poppins(fontSize: 13)),
-                            ))
+                        .map(
+                          (state) => DropdownMenuItem(
+                            value: state,
+                            child: Text(
+                              state,
+                              style: GoogleFonts.poppins(fontSize: 13),
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (state) {
                       if (state != null) {
@@ -310,30 +337,36 @@ class _MarketRecommendationScreenState
                     border: Border.all(color: AppColors.divider),
                   ),
                   child: DropdownButton<String>(
-                    value: (MarketRecommendationProvider
-                                    .stateCities[rec.userState] ??
+                    value:
+                        (MarketRecommendationProvider.stateCities[rec
+                                    .userState] ??
                                 [])
                             .contains(rec.userCity)
                         ? rec.userCity
-                        : (MarketRecommendationProvider
-                                    .stateCities[rec.userState] ??
-                                ['Nagpur'])
-                            .first,
+                        : (MarketRecommendationProvider.stateCities[rec
+                                      .userState] ??
+                                  ['Nagpur'])
+                              .first,
                     isExpanded: true,
                     underline: const SizedBox(),
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: AppColors.textDark,
                     ),
-                    items: (MarketRecommendationProvider
-                                .stateCities[rec.userState] ??
-                            ['Nagpur'])
-                        .map((city) => DropdownMenuItem(
-                              value: city,
-                              child: Text(city,
-                                  style: GoogleFonts.poppins(fontSize: 13)),
-                            ))
-                        .toList(),
+                    items:
+                        (MarketRecommendationProvider.stateCities[rec
+                                    .userState] ??
+                                ['Nagpur'])
+                            .map(
+                              (city) => DropdownMenuItem(
+                                value: city,
+                                child: Text(
+                                  city,
+                                  style: GoogleFonts.poppins(fontSize: 13),
+                                ),
+                              ),
+                            )
+                            .toList(),
                     onChanged: (city) {
                       if (city != null) {
                         rec.setUserLocation(city, rec.userState);
@@ -353,7 +386,10 @@ class _MarketRecommendationScreenState
   // HERO RECOMMENDATION CARD
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildHeroCard(
-      BuildContext context, LanguageProvider lang, MarketScore top) {
+    BuildContext context,
+    LanguageProvider lang,
+    MarketScore top,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -379,8 +415,10 @@ class _MarketRecommendationScreenState
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -397,8 +435,10 @@ class _MarketRecommendationScreenState
               const Spacer(),
               // Grade badge
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _gradeColor(top.grade).withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(10),
@@ -427,10 +467,7 @@ class _MarketRecommendationScreenState
           ),
           Text(
             '${top.district}, ${top.state}',
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 16),
 
@@ -475,46 +512,52 @@ class _MarketRecommendationScreenState
 
           // Reasons
           if (top.reasons.isNotEmpty)
-            ...top.reasons.take(3).map((r) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('✅ ',
-                          style: TextStyle(fontSize: 13)),
-                      Expanded(
-                        child: Text(
-                          r,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 12,
+            ...top.reasons
+                .take(3)
+                .map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('✅ ', style: TextStyle(fontSize: 13)),
+                        Expanded(
+                          child: Text(
+                            r,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 12,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                )),
+                ),
 
           if (top.warnings.isNotEmpty)
-            ...top.warnings.take(2).map((w) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('⚠️ ',
-                          style: TextStyle(fontSize: 12)),
-                      Expanded(
-                        child: Text(
-                          w,
-                          style: GoogleFonts.poppins(
-                            color: Colors.yellow.shade100,
-                            fontSize: 12,
+            ...top.warnings
+                .take(2)
+                .map(
+                  (w) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('⚠️ ', style: TextStyle(fontSize: 12)),
+                        Expanded(
+                          child: Text(
+                            w,
+                            style: GoogleFonts.poppins(
+                              color: Colors.yellow.shade100,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                )),
+                ),
         ],
       ),
     );
@@ -526,10 +569,7 @@ class _MarketRecommendationScreenState
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(
-            color: Colors.white60,
-            fontSize: 11,
-          ),
+          style: GoogleFonts.poppins(color: Colors.white60, fontSize: 11),
         ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -546,10 +586,7 @@ class _MarketRecommendationScreenState
               padding: const EdgeInsets.only(bottom: 3),
               child: Text(
                 unit,
-                style: GoogleFonts.poppins(
-                  color: Colors.white70,
-                  fontSize: 12,
-                ),
+                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
               ),
             ),
           ],
@@ -785,8 +822,8 @@ class _MarketRecommendationScreenState
                   color: isTop
                       ? const Color(0xFF2E7D32)
                       : rank <= 3
-                          ? const Color(0xFF4CAF50)
-                          : AppColors.textLight,
+                      ? const Color(0xFF4CAF50)
+                      : AppColors.textLight,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
@@ -828,8 +865,10 @@ class _MarketRecommendationScreenState
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: _gradeColor(m.grade).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -859,19 +898,29 @@ class _MarketRecommendationScreenState
           // Metrics row
           Row(
             children: [
-              _metricChip('💰', '₹${m.netProfit.toStringAsFixed(0)}',
-                  lang.tr('net')),
-              const SizedBox(width: 10),
-              _metricChip('📊', '₹${m.modalPrice.toStringAsFixed(0)}',
-                  lang.tr('modal')),
-              const SizedBox(width: 10),
-              _metricChip('🚛', '₹${m.estimatedTravelCost.toStringAsFixed(0)}',
-                  lang.tr('travel')),
+              _metricChip(
+                '💰',
+                '₹${m.netProfit.toStringAsFixed(0)}',
+                lang.tr('net'),
+              ),
               const SizedBox(width: 10),
               _metricChip(
-                  '📉',
-                  '${(m.volatility * 100).toStringAsFixed(0)}%',
-                  lang.tr('vol')),
+                '📊',
+                '₹${m.modalPrice.toStringAsFixed(0)}',
+                lang.tr('modal'),
+              ),
+              const SizedBox(width: 10),
+              _metricChip(
+                '🚛',
+                '₹${m.estimatedTravelCost.toStringAsFixed(0)}',
+                lang.tr('travel'),
+              ),
+              const SizedBox(width: 10),
+              _metricChip(
+                '📉',
+                '${(m.volatility * 100).toStringAsFixed(0)}%',
+                lang.tr('vol'),
+              ),
             ],
           ),
 
@@ -942,9 +991,13 @@ class _MarketRecommendationScreenState
     final Color riskColor = isHighRisk
         ? AppColors.riskHigh
         : isMediumRisk
-            ? AppColors.riskMedium
-            : AppColors.riskLow;
-    final String riskEmoji = isHighRisk ? '🔴' : isMediumRisk ? '🟡' : '🟢';
+        ? AppColors.riskMedium
+        : AppColors.riskLow;
+    final String riskEmoji = isHighRisk
+        ? '🔴'
+        : isMediumRisk
+        ? '🟡'
+        : '🟢';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -978,7 +1031,10 @@ class _MarketRecommendationScreenState
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: riskColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -1007,7 +1063,9 @@ class _MarketRecommendationScreenState
               const SizedBox(width: 16),
               _transitMetric(
                 top.isPerishable ? '🥬' : '🌾',
-                top.isPerishable ? lang.tr('perishable') : lang.tr('non_perishable'),
+                top.isPerishable
+                    ? lang.tr('perishable')
+                    : lang.tr('non_perishable'),
                 lang.tr('crop_type'),
               ),
               const SizedBox(width: 16),
@@ -1023,8 +1081,13 @@ class _MarketRecommendationScreenState
           // Visual risk bar
           Row(
             children: [
-              Text(lang.tr('spoilage_risk'),
-                  style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textMedium)),
+              Text(
+                lang.tr('spoilage_risk'),
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: AppColors.textMedium,
+                ),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: ClipRRect(
@@ -1041,7 +1104,10 @@ class _MarketRecommendationScreenState
               Text(
                 '${top.spoilageRiskPercent.toStringAsFixed(1)}%',
                 style: GoogleFonts.poppins(
-                    fontSize: 12, fontWeight: FontWeight.w700, color: riskColor),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: riskColor,
+                ),
               ),
             ],
           ),
@@ -1063,7 +1129,10 @@ class _MarketRecommendationScreenState
                     child: Text(
                       lang.tr('high_spoilage_warning'),
                       style: GoogleFonts.poppins(
-                          fontSize: 11, color: AppColors.riskHigh, fontWeight: FontWeight.w500),
+                        fontSize: 11,
+                        color: AppColors.riskHigh,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -1087,11 +1156,21 @@ class _MarketRecommendationScreenState
           children: [
             Text(emoji, style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 2),
-            Text(value,
-                style: GoogleFonts.poppins(
-                    fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark)),
-            Text(label,
-                style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textLight)),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                color: AppColors.textLight,
+              ),
+            ),
           ],
         ),
       ),
@@ -1106,55 +1185,78 @@ class _MarketRecommendationScreenState
     final reasons = <_MarketExplainPoint>[];
 
     // 1. Net price reasoning
-    reasons.add(_MarketExplainPoint(
-      icon: '💰',
-      category: lang.tr('price_advantage'),
-      detail: '₹${top.netProfit.toStringAsFixed(0)}/q after ₹${top.estimatedTravelCost.toStringAsFixed(0)} travel cost',
-      score: top.netPriceScore,
-      weight: '40%',
-      isStrong: top.netPriceScore >= 70,
-    ));
+    reasons.add(
+      _MarketExplainPoint(
+        icon: '💰',
+        category: lang.tr('price_advantage'),
+        detail:
+            '₹${top.netProfit.toStringAsFixed(0)}/q after ₹${top.estimatedTravelCost.toStringAsFixed(0)} travel cost',
+        score: top.netPriceScore,
+        weight: '40%',
+        isStrong: top.netPriceScore >= 70,
+      ),
+    );
 
     // 2. Regional advantage
-    reasons.add(_MarketExplainPoint(
-      icon: '📊',
-      category: lang.tr('regional_advantage'),
-      detail: '${top.regionalDiffPercent >= 0 ? '+' : ''}${top.regionalDiffPercent.toStringAsFixed(1)}% vs ₹${top.regionalAvg.toStringAsFixed(0)} regional avg',
-      score: top.regionalScore,
-      weight: '25%',
-      isStrong: top.regionalScore >= 70,
-    ));
+    reasons.add(
+      _MarketExplainPoint(
+        icon: '📊',
+        category: lang.tr('regional_advantage'),
+        detail:
+            '${top.regionalDiffPercent >= 0 ? '+' : ''}${top.regionalDiffPercent.toStringAsFixed(1)}% vs ₹${top.regionalAvg.toStringAsFixed(0)} regional avg',
+        score: top.regionalScore,
+        weight: '25%',
+        isStrong: top.regionalScore >= 70,
+      ),
+    );
 
     // 3. Price stability
-    reasons.add(_MarketExplainPoint(
-      icon: '📈',
-      category: lang.tr('price_stability'),
-      detail: '${(top.volatility * 100).toStringAsFixed(0)}% volatility — ${top.volatility < 0.1 ? 'very stable' : top.volatility < 0.2 ? 'stable' : 'volatile'}',
-      score: top.stabilityScore,
-      weight: '20%',
-      isStrong: top.stabilityScore >= 70,
-    ));
+    reasons.add(
+      _MarketExplainPoint(
+        icon: '📈',
+        category: lang.tr('price_stability'),
+        detail:
+            '${(top.volatility * 100).toStringAsFixed(0)}% volatility — ${top.volatility < 0.1
+                ? 'very stable'
+                : top.volatility < 0.2
+                ? 'stable'
+                : 'volatile'}',
+        score: top.stabilityScore,
+        weight: '20%',
+        isStrong: top.stabilityScore >= 70,
+      ),
+    );
 
     // 4. Competition
-    reasons.add(_MarketExplainPoint(
-      icon: '🏪',
-      category: lang.tr('low_competition'),
-      detail: '${top.arrivalCount} arrivals/traders — ${top.arrivalCount < 5 ? 'less crowded' : 'competitive'}',
-      score: top.competitionScore,
-      weight: '15%',
-      isStrong: top.competitionScore >= 70,
-    ));
+    reasons.add(
+      _MarketExplainPoint(
+        icon: '🏪',
+        category: lang.tr('low_competition'),
+        detail:
+            '${top.arrivalCount} arrivals/traders — ${top.arrivalCount < 5 ? 'less crowded' : 'competitive'}',
+        score: top.competitionScore,
+        weight: '15%',
+        isStrong: top.competitionScore >= 70,
+      ),
+    );
 
     // 5. Transit (if available)
     if (top.transitHours > 0) {
-      reasons.add(_MarketExplainPoint(
-        icon: '🚛',
-        category: lang.tr('transit_factor'),
-        detail: '${top.transitHours.toStringAsFixed(1)}h travel, ~${top.spoilageRiskPercent.toStringAsFixed(1)}% spoilage risk',
-        score: top.spoilageRiskPercent < 5 ? 85 : top.spoilageRiskPercent < 15 ? 55 : 25,
-        weight: 'Info',
-        isStrong: top.spoilageRiskPercent < 5,
-      ));
+      reasons.add(
+        _MarketExplainPoint(
+          icon: '🚛',
+          category: lang.tr('transit_factor'),
+          detail:
+              '${top.transitHours.toStringAsFixed(1)}h travel, ~${top.spoilageRiskPercent.toStringAsFixed(1)}% spoilage risk',
+          score: top.spoilageRiskPercent < 5
+              ? 85
+              : top.spoilageRiskPercent < 15
+              ? 55
+              : 25,
+          weight: 'Info',
+          isStrong: top.spoilageRiskPercent < 5,
+        ),
+      );
     }
 
     return Container(
@@ -1162,7 +1264,9 @@ class _MarketRecommendationScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.15)),
+        border: Border.all(
+          color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -1192,14 +1296,20 @@ class _MarketRecommendationScreenState
                     ),
                     Text(
                       lang.tr('explainability_subtitle'),
-                      style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
                     ),
                   ],
                 ),
               ),
               // Overall verdict
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _gradeColor(top.grade).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -1225,20 +1335,28 @@ class _MarketRecommendationScreenState
             const SizedBox(height: 8),
             const Divider(),
             const SizedBox(height: 4),
-            ...top.warnings.take(3).map((w) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('⚠️ ', style: TextStyle(fontSize: 13)),
-                      Expanded(
-                        child: Text(w,
+            ...top.warnings
+                .take(3)
+                .map(
+                  (w) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('⚠️ ', style: TextStyle(fontSize: 13)),
+                        Expanded(
+                          child: Text(
+                            w,
                             style: GoogleFonts.poppins(
-                                fontSize: 11, color: Colors.orange.shade700)),
-                      ),
-                    ],
+                              fontSize: 11,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )),
+                ),
           ],
         ],
       ),
@@ -1249,8 +1367,8 @@ class _MarketRecommendationScreenState
     final Color barColor = point.isStrong
         ? const Color(0xFF2E7D32)
         : point.score >= 50
-            ? AppColors.riskMedium
-            : AppColors.riskHigh;
+        ? AppColors.riskMedium
+        : AppColors.riskHigh;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1288,7 +1406,10 @@ class _MarketRecommendationScreenState
                 const SizedBox(height: 2),
                 Text(
                   point.detail,
-                  style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight),
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: AppColors.textLight,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 ClipRRect(
@@ -1305,6 +1426,327 @@ class _MarketRecommendationScreenState
           ),
         ],
       ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REAL ROAD DISTANCE CARD (OSRM API — FREE, NO KEY)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildRealDistanceCard(LanguageProvider lang, RouteInfo route) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade800, Colors.blue.shade600],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '🛣️ Real Road Distance (OSRM Live)',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.gps_fixed, color: Colors.white70, size: 18),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${route.fromCity} → ${route.toCity}',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _osrmChip(Icons.straighten, route.distanceLabel),
+                        const SizedBox(width: 10),
+                        _osrmChip(Icons.access_time, route.durationLabel),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    _osrmChip(
+                      Icons.local_shipping,
+                      'Est. Transport: ₹${route.estimatedTransportCost.toStringAsFixed(0)}/quintal',
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Text('🗺️', style: TextStyle(fontSize: 28)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Powered by OSRM — Real road routing, not straight-line',
+            style: GoogleFonts.poppins(
+              color: Colors.white60,
+              fontSize: 10,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _osrmChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white70, size: 14),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EXPORT PRICE CARD (Frankfurter API — FREE, NO KEY)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildExportPriceCard(
+    LanguageProvider lang,
+    ExportPriceResult export,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.amber.shade800, Colors.orange.shade700],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '🌍 Export Price Calculator (Live Rates)',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Export demand badge
+          Row(
+            children: [
+              Text(
+                '${export.demandEmoji} Export Demand: ${export.exportDemand}',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '+${export.exportPremiumPercent.toStringAsFixed(0)}% premium',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Price comparison
+          Row(
+            children: [
+              Expanded(
+                child: _exportMetric(
+                  'Domestic',
+                  '₹${export.domesticPriceInr.toStringAsFixed(0)}',
+                  '/quintal',
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  '→',
+                  style: TextStyle(color: Colors.white70, fontSize: 20),
+                ),
+              ),
+              Expanded(
+                child: _exportMetric(
+                  'Export (USD)',
+                  '\$${export.exportPriceUsd.toStringAsFixed(2)}',
+                  '/quintal',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _exportMetric(
+                  'Export Price (INR)',
+                  '₹${export.exportPriceInr.toStringAsFixed(0)}',
+                  '/quintal',
+                ),
+              ),
+              Expanded(
+                child: _exportMetric(
+                  'International (USD)',
+                  '\$${export.exportPriceUsdPerTon.toStringAsFixed(0)}',
+                  '/metric ton',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Text('📦', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Major Markets: ${export.majorMarkets}',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Exchange rates from European Central Bank (Frankfurter API) • ${export.rates.date}',
+            style: GoogleFonts.poppins(
+              color: Colors.white60,
+              fontSize: 9.5,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _exportMetric(String label, String value, String unit) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(color: Colors.white60, fontSize: 10),
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(
+                unit,
+                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

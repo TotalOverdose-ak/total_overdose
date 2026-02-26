@@ -448,9 +448,13 @@ class MandiProvider extends ChangeNotifier {
       final itemLower = item.toLowerCase();
 
       // Search all loaded mandi prices for a commodity match
-      final matchingPrices = _prices.where((p) =>
-          p.commodity.toLowerCase().contains(itemLower) ||
-          itemLower.contains(p.commodity.toLowerCase())).toList();
+      final matchingPrices = _prices
+          .where(
+            (p) =>
+                p.commodity.toLowerCase().contains(itemLower) ||
+                itemLower.contains(p.commodity.toLowerCase()),
+          )
+          .toList();
 
       if (matchingPrices.isNotEmpty) {
         // Use the first match (best match)
@@ -460,13 +464,15 @@ class MandiProvider extends ChangeNotifier {
         double vendorNumeric = best.modalPrice; // default
         final numMatch = RegExp(r'[\d,]+\.?\d*').firstMatch(vendorPrice);
         if (numMatch != null) {
-          vendorNumeric = double.tryParse(
-              numMatch.group(0)!.replaceAll(',', '')) ?? best.modalPrice;
+          vendorNumeric =
+              double.tryParse(numMatch.group(0)!.replaceAll(',', '')) ??
+              best.modalPrice;
 
           // If vendor entered per-kg price, convert to per-quintal for comparison
           if (vendorPrice.toLowerCase().contains('/kg') ||
               vendorPrice.toLowerCase().contains('per kg') ||
-              (!vendorPrice.toLowerCase().contains('quintal') && vendorNumeric < 500)) {
+              (!vendorPrice.toLowerCase().contains('quintal') &&
+                  vendorNumeric < 500)) {
             vendorNumeric *= 100; // 1 quintal = 100 kg
           }
         }

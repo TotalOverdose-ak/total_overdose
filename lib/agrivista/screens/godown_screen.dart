@@ -5,6 +5,7 @@ import '../providers/language_provider.dart';
 import '../providers/weather_provider.dart';
 import '../services/mandi_ai_service.dart';
 import '../services/spoilage_prevention_service.dart';
+import '../services/soil_health_service.dart';
 import '../theme/app_colors.dart';
 
 /// Smart Godown Screen — AI-powered crop storage advisor
@@ -12,6 +13,7 @@ import '../theme/app_colors.dart';
 /// - Weather-based storage risk assessment
 /// - Ideal storage conditions for any crop
 /// - Nearby godown / safe storage location suggestions
+/// - Soil health analysis (SoilGrids API — FREE)
 /// - Multi-language support
 class GodownScreen extends StatefulWidget {
   const GodownScreen({super.key});
@@ -27,6 +29,10 @@ class _GodownScreenState extends State<GodownScreen> {
   String? _storageAdvice;
   String? _locationAdvice;
   String _riskLevel = ''; // low, medium, high
+
+  // Soil health data (SoilGrids API)
+  SoilHealthData? _soilData;
+  bool _soilLoading = false;
 
   static const List<String> _commonCrops = [
     'Wheat',
@@ -80,16 +86,18 @@ class _GodownScreenState extends State<GodownScreen> {
     });
 
     try {
-      // Parallel AI calls for storage advice and location suggestions
+      // Parallel AI calls for storage advice, location suggestions & soil health
+      final cityName = weather?.city ?? 'Nagpur';
       final results = await Future.wait([
         _getStorageAdvice(crop, weather, lang),
         _getLocationAdvice(crop, weather, lang),
+        _fetchSoilHealth(cityName),
       ]);
 
       if (mounted) {
         setState(() {
-          _storageAdvice = results[0];
-          _locationAdvice = results[1];
+          _storageAdvice = results[0] as String?;
+          _locationAdvice = results[1] as String?;
           _riskLevel = _calculateRisk(crop, weather);
           _isLoading = false;
         });
@@ -112,8 +120,14 @@ class _GodownScreenState extends State<GodownScreen> {
 
     // Perishable crops (fruits/vegetables)
     final perishable = [
-      'Tomato', 'Banana', 'Mango', 'Apple', 'Cauliflower',
-      'Potato', 'Onion', 'Chilli',
+      'Tomato',
+      'Banana',
+      'Mango',
+      'Apple',
+      'Cauliflower',
+      'Potato',
+      'Onion',
+      'Chilli',
     ];
 
     // Grains (more tolerant)
@@ -135,8 +149,36 @@ class _GodownScreenState extends State<GodownScreen> {
     }
   }
 
+  /// Fetch soil health data from SoilGrids API (FREE, no key)
+  Future<String> _fetchSoilHealth(String city) async {
+    try {
+      setState(() => _soilLoading = true);
+      final coords = await SoilHealthService.geocodeCity(city);
+      if (coords != null) {
+        final data = await SoilHealthService.fetchSoilData(
+          latitude: coords[0],
+          longitude: coords[1],
+        );
+        if (mounted) {
+          setState(() {
+            _soilData = data;
+            _soilLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _soilLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _soilLoading = false);
+    }
+    return '';
+  }
+
   Future<String> _getStorageAdvice(
-      String crop, WeatherData? weather, String lang) async {
+    String crop,
+    WeatherData? weather,
+    String lang,
+  ) async {
     final weatherInfo = weather != null
         ? 'Current weather: ${weather.temperature}°C, ${weather.humidity}% humidity, ${weather.description}, Wind: ${weather.windKmh} km/h, City: ${weather.city}'
         : 'Weather data not available';
@@ -153,10 +195,12 @@ class _GodownScreenState extends State<GodownScreen> {
     } else if (lang == 'Bengali') {
       langInstruction = 'Respond ENTIRELY in Bengali script.';
     } else if (lang == 'Hinglish') {
-      langInstruction = 'Respond in Hinglish (Hindi-English mix, Roman script).';
+      langInstruction =
+          'Respond in Hinglish (Hindi-English mix, Roman script).';
     }
 
-    final prompt = '''You are an expert agricultural storage advisor for Indian farmers.
+    final prompt =
+        '''You are an expert agricultural storage advisor for Indian farmers.
 
 CROP: $crop
 $weatherInfo
@@ -172,14 +216,14 @@ Provide storage advice covering:
 
 Keep under 120 words. No markdown. Be practical and farmer-friendly.''';
 
-    return MandiAIService.chat(
-      message: prompt,
-      language: lang,
-    );
+    return MandiAIService.chat(message: prompt, language: lang);
   }
 
   Future<String> _getLocationAdvice(
-      String crop, WeatherData? weather, String lang) async {
+    String crop,
+    WeatherData? weather,
+    String lang,
+  ) async {
     final city = weather?.city ?? 'India';
     final temp = weather?.temperature ?? 30;
     final humidity = weather?.humidity ?? 60;
@@ -192,10 +236,12 @@ Keep under 120 words. No markdown. Be practical and farmer-friendly.''';
     } else if (lang == 'Tamil') {
       langInstruction = 'Respond ENTIRELY in Tamil script.';
     } else if (lang == 'Hinglish') {
-      langInstruction = 'Respond in Hinglish (Hindi-English mix, Roman script).';
+      langInstruction =
+          'Respond in Hinglish (Hindi-English mix, Roman script).';
     }
 
-    final prompt = '''You are an agricultural storage location expert for India.
+    final prompt =
+        '''You are an agricultural storage location expert for India.
 
 CROP: $crop
 LOCATION: $city area
@@ -212,10 +258,7 @@ Suggest:
 
 Keep under 100 words. No markdown. Be practical.''';
 
-    return MandiAIService.chat(
-      message: prompt,
-      language: lang,
-    );
+    return MandiAIService.chat(message: prompt, language: lang);
   }
 
   @override
@@ -259,7 +302,11 @@ Keep under 100 words. No markdown. Be practical.''';
                     Text(l, style: GoogleFonts.poppins(fontSize: 14)),
                     if (lang.currentLanguage == l) ...[
                       const Spacer(),
-                      const Icon(Icons.check, size: 16, color: AppColors.primaryGreen),
+                      const Icon(
+                        Icons.check,
+                        size: 16,
+                        color: AppColors.primaryGreen,
+                      ),
                     ],
                   ],
                 ),
@@ -309,14 +356,18 @@ Keep under 100 words. No markdown. Be practical.''';
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const SizedBox(
-                            width: 20, height: 20,
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white,
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(width: 10),
-                          Text(lang.tr('loading_advice'),
-                              style: GoogleFonts.poppins(fontSize: 13)),
+                          Text(
+                            lang.tr('loading_advice'),
+                            style: GoogleFonts.poppins(fontSize: 13),
+                          ),
                         ],
                       )
                     : Text(
@@ -334,12 +385,29 @@ Keep under 100 words. No markdown. Be practical.''';
             if (_riskLevel.isNotEmpty) _buildRiskCard(lang),
             if (_riskLevel.isNotEmpty) const SizedBox(height: 14),
 
+            // ── Soil Health Card (SoilGrids API — FREE) ──────────────────
+            if (_soilData != null) _buildSoilHealthCard(lang),
+            if (_soilData != null) const SizedBox(height: 14),
+            if (_soilLoading) ...[
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text(
+                    '🌍 Fetching soil data from SoilGrids...',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+
             // ── Storage Advice Card ──────────────────────────────────────
             if (_storageAdvice != null) _buildAdviceCard(lang),
             if (_storageAdvice != null) const SizedBox(height: 14),
 
             // ── Spoilage Prevention Ranking Table ────────────────────────
-            if (_storageAdvice != null && (_selectedCrop ?? _cropController.text).isNotEmpty)
+            if (_storageAdvice != null &&
+                (_selectedCrop ?? _cropController.text).isNotEmpty)
               _buildPreservationRankingTable(lang),
             if (_storageAdvice != null) const SizedBox(height: 14),
 
@@ -448,19 +516,28 @@ Keep under 100 words. No markdown. Be practical.''';
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.primaryGreen : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? AppColors.primaryGreen : AppColors.divider,
+                    color: isSelected
+                        ? AppColors.primaryGreen
+                        : AppColors.divider,
                   ),
                   boxShadow: isSelected
-                      ? [BoxShadow(
-                          color: AppColors.primaryGreen.withValues(alpha: 0.3),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        )]
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primaryGreen.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
                       : [],
                 ),
                 child: Text(
@@ -480,15 +557,22 @@ Keep under 100 words. No markdown. Be practical.''';
         // Custom crop input
         TextField(
           controller: _cropController,
-          onChanged: (v) => setState(() => _selectedCrop = v.isNotEmpty ? v : null),
+          onChanged: (v) =>
+              setState(() => _selectedCrop = v.isNotEmpty ? v : null),
           style: GoogleFonts.poppins(fontSize: 14),
           decoration: InputDecoration(
             hintText: lang.tr('enter_crop'),
-            hintStyle: GoogleFonts.poppins(color: AppColors.textLight, fontSize: 13),
+            hintStyle: GoogleFonts.poppins(
+              color: AppColors.textLight,
+              fontSize: 13,
+            ),
             prefixIcon: const Icon(Icons.eco, color: AppColors.primaryGreen),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(color: AppColors.divider),
@@ -499,7 +583,10 @@ Keep under 100 words. No markdown. Be practical.''';
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.primaryGreen, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primaryGreen,
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -658,7 +745,10 @@ Keep under 100 words. No markdown. Be practical.''';
           const SizedBox(height: 4),
           Text(
             lang.tr('preservation_subtitle'),
-            style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight),
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: AppColors.textLight,
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -673,28 +763,48 @@ Keep under 100 words. No markdown. Be practical.''';
               children: [
                 SizedBox(
                   width: 28,
-                  child: Text('Rank',
-                      style: GoogleFonts.poppins(
-                          fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                  child: Text(
+                    'Rank',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                 ),
                 Expanded(
                   flex: 3,
-                  child: Text(lang.tr('action'),
-                      style: GoogleFonts.poppins(
-                          fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                  child: Text(
+                    lang.tr('action'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text(lang.tr('cost_col'),
-                      style: GoogleFonts.poppins(
-                          fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                  child: Text(
+                    lang.tr('cost_col'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                 ),
                 SizedBox(
                   width: 65,
-                  child: Text(lang.tr('effectiveness'),
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                          fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                  child: Text(
+                    lang.tr('effectiveness'),
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -759,15 +869,18 @@ Keep under 100 words. No markdown. Be practical.''';
                     color: action.rank == 1
                         ? AppColors.primaryGreen
                         : action.rank <= 3
-                            ? const Color(0xFF4CAF50)
-                            : AppColors.textLight,
+                        ? const Color(0xFF4CAF50)
+                        : AppColors.textLight,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     '#${action.rank}',
                     style: GoogleFonts.poppins(
-                        fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -778,7 +891,9 @@ Keep under 100 words. No markdown. Be practical.''';
                   action.action,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    fontWeight: action.rank == 1 ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: action.rank == 1
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                     color: AppColors.textDark,
                   ),
                 ),
@@ -788,12 +903,18 @@ Keep under 100 words. No markdown. Be practical.''';
                 flex: 2,
                 child: Row(
                   children: [
-                    Text(action.costEmoji, style: const TextStyle(fontSize: 12)),
+                    Text(
+                      action.costEmoji,
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     const SizedBox(width: 3),
                     Expanded(
                       child: Text(
                         action.costEstimate,
-                        style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textMedium),
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: AppColors.textMedium,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -851,7 +972,10 @@ Keep under 100 words. No markdown. Be practical.''';
       children: [
         Text(emoji, style: const TextStyle(fontSize: 12)),
         const SizedBox(width: 3),
-        Text(label, style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textLight)),
+        Text(
+          label,
+          style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textLight),
+        ),
       ],
     );
   }
@@ -898,6 +1022,162 @@ Keep under 100 words. No markdown. Be practical.''';
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Soil Health Card (SoilGrids API — FREE, NO KEY) ────────────────────────
+  Widget _buildSoilHealthCard(LanguageProvider lang) {
+    final soil = _soilData!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.brown.shade700, Colors.brown.shade500],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.brown.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '🌍 Soil Health Analysis (SoilGrids Live)',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${soil.fertilityEmoji} ${soil.fertilityRating}',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Soil type
+          Text(
+            '🏔️ Soil Type: ${soil.soilType}',
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // pH
+          if (soil.phValue != null)
+            Text(
+              '⚗️ pH: ${soil.phValue!.toStringAsFixed(1)} — ${soil.phInterpretation}',
+              style: GoogleFonts.poppins(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 12,
+              ),
+            ),
+          const SizedBox(height: 4),
+
+          // Nutrient row
+          Wrap(
+            spacing: 10,
+            runSpacing: 6,
+            children: [
+              if (soil.organicCarbonGPerKg != null)
+                _soilChip(
+                  '🌿 OC: ${soil.organicCarbonGPerKg!.toStringAsFixed(1)} g/kg',
+                ),
+              if (soil.nitrogenGPerKg != null)
+                _soilChip(
+                  '💧 N: ${soil.nitrogenGPerKg!.toStringAsFixed(2)} g/kg',
+                ),
+              if (soil.clayPercent != null)
+                _soilChip('🧱 Clay: ${soil.clayPercent!.toStringAsFixed(0)}%'),
+              if (soil.sandPercent != null)
+                _soilChip('🏖️ Sand: ${soil.sandPercent!.toStringAsFixed(0)}%'),
+              if (soil.siltPercent != null)
+                _soilChip('🌊 Silt: ${soil.siltPercent!.toStringAsFixed(0)}%'),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Storage suitability
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Text('🏪', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    soil.storageSuitability,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Data: ISRIC World Soil Information (SoilGrids API — Free)',
+            style: GoogleFonts.poppins(
+              color: Colors.white54,
+              fontSize: 9.5,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _soilChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(
+          color: Colors.white.withValues(alpha: 0.9),
+          fontSize: 11,
+        ),
       ),
     );
   }
