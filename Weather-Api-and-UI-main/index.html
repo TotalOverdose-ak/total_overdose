@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ClimateX - Modern Weather</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-wrap">
+        <div class="weather-card">
+            <header class="app-bar">
+                <div class="app-title">Akash Weather</div>
+                <div class="app-controls">
+                    <button class="icon-button">
+                        <span class="material-icons-round">settings</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="search-container">
+                <div class="search-bar">
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path
+                            d="M23.707,22.293l-5.969-5.969a10.016,10.016,0,1,0-1.414,1.414l5.969,5.969a1,1,0,0,0,1.414-1.414ZM10,18a8,8,0,1,1,8-8A8.009,8.009,0,0,1,10,18Z" />
+                    </svg>
+                    <input type="text" autocomplete="off" class="search-input" placeholder="Search city...">
+                    <div class="micro-interaction"></div>
+                    <button class="search-fab">
+                        <span class="material-icons-round">my_location</span>
+                    </button>
+                </div>
+            </div>
+
+            <main class="weather-content">
+                <div class="location-container">
+                    <div class="city">Nagpur, IN</div>
+                    <div class="date">Friday 07 March 2025</div>
+                </div>
+
+                <div class="weather-display">
+                    <div class="temperature">
+                        29<span>°c</span>
+                        <div class="weather-icon sun"></div>
+                    </div>
+                    <div class="weather-status">Sunny Skies</div>
+
+                    <div class="metric-grid">
+                        <div class="metric-card elevation">
+                            <span class="material-icons-round">air</span>
+                            <div class="metric-info">
+                                <div class="value">12 km/h</div>
+                                <div class="label">Wind</div>
+                            </div>
+                        </div>
+                        <div class="metric-card elevation">
+                            <span class="material-icons-round">water_drop</span>
+                            <div class="metric-info">
+                                <div class="value">64%</div>
+                                <div class="label">Humidity</div>
+                            </div>
+                        </div>
+                        <div class="metric-card elevation">
+                            <span class="material-icons-round">thermostat</span>
+                            <div class="metric-info">
+                                <div class="value">16°c</div>
+                                <div class="label">High</div>
+                            </div>
+                        </div>
+                        <div class="metric-card elevation">
+                            <span class="material-icons-round">compress</span>
+                            <div class="metric-info">
+                                <div class="value">13°c</div>
+                                <div class="label">Low</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="forecast-section">
+                        <!-- Change the toggle button in your forecast section -->
+                        <div class="section-header">
+                            <h3>Hourly Forecast</h3>
+                            <button class="text-button" id="hourly-toggle">24h</button>
+                        </div>
+                    </div>
+                    <div class="forecast-scroll">
+                        <div class="hour-card">
+                            <div class="time">3 PM</div>
+                            <div class="temp">31°</div>
+                        </div>
+                        <!-- Add more hour cards -->
+                    </div>
+                </div>
+        </div>
+        </main>
+    </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
