@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/mandi_provider.dart';
+import '../providers/language_provider.dart';
 import '../services/mandi_ai_service.dart';
 import '../theme/app_colors.dart';
 
@@ -32,6 +33,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
     return Consumer<MandiProvider>(
       builder: (context, mandi, _) {
         return Scaffold(
@@ -40,7 +42,7 @@ class _MarketPricesScreenState extends State<MarketPricesScreen>
             backgroundColor: const Color(0xFF2E7D32),
             elevation: 0,
             title: Text(
-              '💹 Mandi Hub',
+              '💹 ${lang.tr('mandi_hub')}',
               style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -108,10 +110,10 @@ class _MarketPricesScreenState extends State<MarketPricesScreen>
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
-              tabs: const [
-                Tab(text: '📊 Prices'),
-                Tab(text: '🤖 AI Chat'),
-                Tab(text: '🤝 Bargain'),
+              tabs: [
+                Tab(text: lang.tr('tab_prices')),
+                Tab(text: lang.tr('tab_ai_chat')),
+                Tab(text: lang.tr('tab_bargain')),
               ],
             ),
           ),
@@ -432,7 +434,11 @@ class _AIChatTabState extends State<_AIChatTab> {
     final text = _msgController.text.trim();
     if (text.isEmpty) return;
     _msgController.clear();
-    widget.mandi.sendChatMessage(text);
+    widget.mandi.sendChatMessage(text).then((_) {
+      // Scroll after AI response arrives
+      Future.delayed(const Duration(milliseconds: 150), _scrollToBottom);
+    });
+    // Scroll immediately after user message
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
 

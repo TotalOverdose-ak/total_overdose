@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Multilingual Mandi - Breaking language barriers for Indian market vendors with AI-powered translation, price discovery, and negotiation assistance.">
+    <meta name="theme-color" content="#050508">
+    <title>Multilingual Mandi | AI-Powered Market Assistant</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animated" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🏪</span>
+                <div>
+                    <div class="logo-text">Multilingual Mandi</div>
+                    <div class="logo-tagline">AI-Powered Market Assistant</div>
+                </div>
+            </div>
+
+            <!-- Language Selector -->
+            <div class="lang-selector">
+                <button class="lang-btn" id="globalLangBtn" aria-haspopup="true" aria-expanded="false">
+                    <span id="currentLangFlag">🇮🇳</span>
+                    <span id="currentLangName">Hindi</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="lang-dropdown" id="langDropdown" role="menu">
+                    <div class="lang-option selected" data-lang="Hindi" data-flag="🇮🇳" role="menuitem">
+                        <span>🇮🇳</span> Hindi (हिंदी)
+                    </div>
+                    <div class="lang-option" data-lang="Tamil" data-flag="🏛️" role="menuitem">
+                        <span>🏛️</span> Tamil (தமிழ்)
+                    </div>
+                    <div class="lang-option" data-lang="Telugu" data-flag="🌾" role="menuitem">
+                        <span>🌾</span> Telugu (తెలుగు)
+                    </div>
+                    <div class="lang-option" data-lang="Bengali" data-flag="🎭" role="menuitem">
+                        <span>🎭</span> Bengali (বাংলা)
+                    </div>
+                    <div class="lang-option" data-lang="Marathi" data-flag="🏰" role="menuitem">
+                        <span>🏰</span> Marathi (मराठी)
+                    </div>
+                    <div class="lang-option" data-lang="Kannada" data-flag="🌸" role="menuitem">
+                        <span>🌸</span> Kannada (ಕನ್ನಡ)
+                    </div>
+                    <div class="lang-option" data-lang="Gujarati" data-flag="🦁" role="menuitem">
+                        <span>🦁</span> Gujarati (ગુજરાતી)
+                    </div>
+                    <div class="lang-option" data-lang="Punjabi" data-flag="⚔️" role="menuitem">
+                        <span>⚔️</span> Punjabi (ਪੰਜਾਬੀ)
+                    </div>
+                    <div class="lang-option" data-lang="English" data-flag="🇬🇧" role="menuitem">
+                        <span>🇬🇧</span> English
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-badge">
+            <i class="fas fa-bolt"></i>
+            <span>Republic Day Hackathon 2026 • Powered by Gemini AI</span>
+        </div>
+        <h1 class="hero-title">
+            Trade Across Languages,<br>
+            <span class="gradient-text">Connect Across India</span>
+        </h1>
+        <p class="hero-subtitle">
+            Voice translation in 8+ Indian languages, real-time market prices, and AI-powered negotiation tips — built
+            for India's vendors.
+        </p>
+    </section>
+
+    <!-- Live Price Ticker -->
+    <div class="price-ticker" aria-label="Live Market Prices">
+        <div class="ticker-track" id="tickerTrack">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Voice Translation Card -->
+        <section class="glass-card glass-card--saffron feature-card" id="translatorCard">
+            <div class="feature-header">
+                <div class="feature-icon feature-icon--saffron">
+                    <i class="fas fa-language"></i>
+                </div>
+                <div>
+                    <h2 class="feature-title">Voice Translator</h2>
+                    <p class="feature-desc">Speak or type, translate instantly</p>
+                </div>
+            </div>
+
+            <div class="translator-section">
+                <!-- Language Selection -->
+                <div class="lang-select-wrapper">
+                    <select class="lang-select" id="sourceLang" aria-label="Source Language">
+                        <option value="auto">🎙️ Auto-detect</option>
+                        <option value="English">🇬🇧 English</option>
+                        <option value="Hindi">🇮🇳 Hindi</option>
+                        <option value="Tamil">🏛️ Tamil</option>
+                        <option value="Telugu">🌾 Telugu</option>
+                        <option value="Bengali">🎭 Bengali</option>
+                        <option value="Marathi">🏰 Marathi</option>
+                    </select>
+                    <button class="swap-btn" id="swapLangsBtn" aria-label="Swap languages" title="Swap languages">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    <select class="lang-select" id="targetLang" aria-label="Target Language">
+                        <option value="Hindi">🇮🇳 Hindi</option>
+                        <option value="Tamil">🏛️ Tamil</option>
+                        <option value="Telugu">🌾 Telugu</option>
+                        <option value="Bengali">🎭 Bengali</option>
+                        <option value="Marathi">🏰 Marathi</option>
+                        <option value="Kannada">🌸 Kannada</option>
+                        <option value="Gujarati">🦁 Gujarati</option>
+                        <option value="Punjabi">⚔️ Punjabi</option>
+                        <option value="English">🇬🇧 English</option>
+                    </select>
+                </div>
+
+                <!-- Input Area -->
+                <textarea class="text-input" id="inputText" placeholder="🎤 Tap the microphone to speak, or type your message here...
+
+Press Ctrl+Enter to translate quickly!" aria-label="Input text for translation"></textarea>
+
+                <!-- Voice Visualizer -->
+                <div class="voice-visualizer" id="voiceVisualizer" aria-hidden="true">
+                    <div class="voice-bar"></div>
+                    <div class="voice-bar"></div>
+                    <div class="voice-bar"></div>
+                    <div class="voice-bar"></div>
+                    <div class="voice-bar"></div>
+                    <div class="voice-bar"></div>
+                    <div class="voice-bar"></div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="translator-actions">
+                    <button class="btn btn--mic" id="micBtn" aria-label="Start voice input"
+                        title="Start voice input (Ctrl+M)">
+                        <i class="fas fa-microphone"></i>
+                        <span>Speak</span>
+                    </button>
+                    <button class="btn btn--secondary" id="translateBtn" title="Translate text (Ctrl+Enter)">
+                        <i class="fas fa-globe"></i>
+                        <span>Translate</span>
+                    </button>
+                </div>
+
+                <!-- Translation Output -->
+                <div class="translation-output" id="translationOutput">
+                    <div class="translation-output-header">
+                        <span class="translation-output-label">
+                            <i class="fas fa-check-circle"></i> Translation
+                        </span>
+                        <div class="translation-output-actions">
+                            <button id="speakBtn" aria-label="Speak translation" title="Listen to translation">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <button id="copyBtn" aria-label="Copy translation" title="Copy to clipboard">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="translation-text" id="translatedText"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Market Prices Card -->
+        <section class="glass-card glass-card--green feature-card" id="pricesCard">
+            <div class="feature-header">
+                <div class="feature-icon feature-icon--green">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div>
+                    <h2 class="feature-title">Market Prices</h2>
+                    <p class="feature-desc">Live rates from mandis across India</p>
+                </div>
+            </div>
+
+            <div class="price-grid" id="priceList" aria-live="polite">
+                <!-- Loading skeleton -->
+                <div class="price-item">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div class="skeleton" style="width: 80px; height: 16px;"></div>
+                            <div class="skeleton" style="width: 120px; height: 12px;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton" style="width: 60px; height: 20px;"></div>
+                </div>
+                <div class="price-item">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div class="skeleton" style="width: 80px; height: 16px;"></div>
+                            <div class="skeleton" style="width: 120px; height: 12px;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton" style="width: 60px; height: 20px;"></div>
+                </div>
+                <div class="price-item">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="skeleton" style="width: 40px; height: 40px; border-radius: 8px;"></div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div class="skeleton" style="width: 80px; height: 16px;"></div>
+                            <div class="skeleton" style="width: 120px; height: 12px;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton" style="width: 60px; height: 20px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Negotiation Assistant Card -->
+        <section class="glass-card glass-card--blue feature-card" id="negoCard">
+            <div class="feature-header">
+                <div class="feature-icon feature-icon--blue">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <div>
+                    <h2 class="feature-title">Bargain Assistant</h2>
+                    <p class="feature-desc">AI-powered negotiation tips</p>
+                </div>
+            </div>
+
+            <div class="nego-section">
+                <div class="nego-inputs">
+                    <input type="text" class="nego-input" id="negItem"
+                        placeholder="🥕 Item name (e.g., Tomato, Potato, Onion)" aria-label="Item name">
+                    <input type="text" class="nego-input" id="negPrice"
+                        placeholder="💰 Asking price (e.g., ₹50/kg, Rs 40 per kg)" aria-label="Asking price">
+                    <select class="nego-input" id="negLang" aria-label="Response language">
+                        <option value="Hinglish">🗣️ Hinglish (Hindi + English)</option>
+                        <option value="Hindi">🇮🇳 Hindi</option>
+                        <option value="Tamil">🏛️ Tamil</option>
+                        <option value="Telugu">🌾 Telugu</option>
+                        <option value="Bengali">🎭 Bengali</option>
+                        <option value="Marathi">🏰 Marathi</option>
+                        <option value="English">🇬🇧 English</option>
+                    </select>
+                </div>
+
+                <button class="btn btn--primary btn--blue" id="negBtn">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Get Advice</span>
+                </button>
+
+                <div class="nego-advice" id="negAdvice">
+                    <div class="nego-advice-header">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <p class="nego-advice-text" id="negAdviceText"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Chat Assistant Card -->
+        <section class="glass-card glass-card--purple feature-card" id="chatCard">
+            <div class="feature-header">
+                <div class="feature-icon feature-icon--purple">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <h2 class="feature-title">AI Market Assistant</h2>
+                    <p class="feature-desc">Ask anything about markets, prices, or trading</p>
+                </div>
+            </div>
+
+            <div class="chat-section">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-welcome">
+                        <i class="fas fa-sparkles"></i>
+                        <p>Namaste! I'm your AI market assistant. Ask me anything about prices, negotiation tips, or market timing!</p>
+                    </div>
+                </div>
+
+                <div class="chat-input-wrapper">
+                    <select class="chat-lang-select" id="chatLang" aria-label="Chat language">
+                        <option value="Hinglish">🗣️ Hinglish</option>
+                        <option value="Hindi">🇮🇳 Hindi</option>
+                        <option value="Tamil">🏛️ Tamil</option>
+                        <option value="Telugu">🌾 Telugu</option>
+                        <option value="Bengali">🎭 Bengali</option>
+                        <option value="Marathi">🏰 Marathi</option>
+                        <option value="Kannada">🌸 Kannada</option>
+                        <option value="Gujarati">🦁 Gujarati</option>
+                        <option value="Punjabi">⚔️ Punjabi</option>
+                        <option value="English">🇬🇧 English</option>
+                    </select>
+                    <input type="text" class="chat-input" id="chatInput" 
+                        placeholder="Ask about prices, best time to buy, negotiation tips..." 
+                        aria-label="Chat message input">
+                    <button class="btn btn--primary btn--chat" id="chatSendBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-badge">
+                <span class="footer-flag">🇮🇳</span>
+                <span>Built with ❤️ for Republic Day Hackathon 2026</span>
+            </div>
+            <p class="footer-text">
+                Powered by Google Gemini AI • Made for Indian Vendors • Open Source
+            </p>
+        </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+
+</html>

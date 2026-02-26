@@ -4,14 +4,22 @@ import 'package:http/http.dart' as http;
 
 /// AI Service for Mandi features using Google Gemini API.
 ///
-/// Ported from multilingual_mandi Python backend to direct Flutter calls.
-/// Features: Translation, Negotiation tips, Price insights, AI Chat.
+/// Uses Gemini REST API (`generativelanguage.googleapis.com`) which supports
+/// browser CORS. Features: Translation, Smart Negotiation, Price insights, AI Chat.
 class MandiAIService {
   // ── Gemini Configuration ─────────────────────────────────────────────────
   static const String _apiKey = 'AIzaSyCRPu7QSFgUnBeu2SkmDzhvunJjYJ4sEQk';
   static const String _model = 'gemini-2.0-flash';
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
+
+  /// System instruction for the AI assistant.
+  static const String _systemInstruction =
+      'You are a helpful AI assistant for Indian market vendors and buyers at local mandis. '
+      'You help with market prices, negotiation tips, quality assessment, storage tips, '
+      'best time to buy/sell, market locations and timings. '
+      'Be friendly and conversational, like a knowledgeable friend who works in the market. '
+      'Keep responses practical and under 100 words. No markdown formatting.';
 
   /// Supported Indian languages
   static const Map<String, String> supportedLanguages = {
@@ -27,44 +35,172 @@ class MandiAIService {
     'English': 'English',
   };
 
-  // ── Core Gemini Call ─────────────────────────────────────────────────────
-  static Future<String> _generate(String prompt) async {
-    try {
-      final uri = Uri.parse('$_baseUrl?key=$_apiKey');
-      final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'contents': [
-                {
-                  'parts': [
-                    {'text': prompt},
-                  ],
+  // ── Core Gemini Call (with retry) ────────────────────────────────────────
+  static Future<String> _generate(
+    String prompt, {
+    int retries = 2,
+    String? systemPrompt,
+  }) async {
+    final fullPrompt = systemPrompt != null
+        ? '$systemPrompt\n\n$prompt'
+        : prompt;
+    return _callGemini(fullPrompt, retries: retries);
+  }
+
+  /// Makes the actual Gemini REST API call with retry logic.
+  static Future<String> _callGemini(
+    String prompt, {
+    int retries = 2,
+  }) async {
+    Exception? lastError;
+
+    for (int attempt = 0; attempt <= retries; attempt++) {
+      try {
+        if (attempt > 0) {
+          await Future.delayed(Duration(milliseconds: 500 * attempt));
+          debugPrint('MandiAIService: Retry attempt $attempt');
+        }
+
+        final url = '$_baseUrl?key=$_apiKey';
+
+        final response = await http
+            .post(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'contents': [
+                  {
+                    'parts': [
+                      {'text': prompt}
+                    ]
+                  }
+                ],
+                'generationConfig': {
+                  'temperature': 0.7,
+                  'maxOutputTokens': 512,
                 },
-              ],
-              'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 512},
-            }),
-          )
-          .timeout(const Duration(seconds: 20));
+              }),
+            )
+            .timeout(const Duration(seconds: 30));
 
-      if (response.statusCode != 200) {
-        debugPrint('Gemini API error: ${response.statusCode} ${response.body}');
-        throw Exception('Gemini API error ${response.statusCode}');
-      }
+        if (response.statusCode != 200) {
+          debugPrint(
+            'Gemini error: ${response.statusCode} ${response.body}',
+          );
+          throw Exception(
+            'Gemini API error ${response.statusCode}: ${response.body}',
+          );
+        }
 
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final candidates = json['candidates'] as List<dynamic>?;
-      if (candidates == null || candidates.isEmpty) {
-        throw Exception('No response from Gemini');
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final candidates = json['candidates'] as List<dynamic>?;
+        if (candidates == null || candidates.isEmpty) {
+          throw Exception('No response from Gemini');
+        }
+
+        final content = candidates[0]['content'] as Map<String, dynamic>?;
+        final parts = content?['parts'] as List<dynamic>?;
+        if (parts == null || parts.isEmpty) {
+          throw Exception('Empty response from Gemini');
+        }
+
+        final text = parts[0]['text'] as String? ?? '';
+        if (text.trim().isEmpty) {
+          throw Exception('Empty text from Gemini');
+        }
+        return text.trim();
+      } catch (e) {
+        debugPrint(
+          'MandiAIService._callGemini error (attempt $attempt): $e',
+        );
+        lastError = e is Exception ? e : Exception(e.toString());
       }
-      final content = candidates[0]['content'] as Map<String, dynamic>;
-      final parts = content['parts'] as List<dynamic>;
-      return (parts[0]['text'] as String).trim();
-    } catch (e) {
-      debugPrint('MandiAIService._generate error: $e');
-      rethrow;
     }
+
+    throw lastError ?? Exception('Failed after $retries retries');
+  }
+
+  /// Multi-turn Gemini call: accepts a list of role/content pairs.
+  static Future<String> _callGeminiMultiTurn(
+    List<Map<String, String>> messages, {
+    int retries = 2,
+  }) async {
+    // Build Gemini contents array from messages
+    // Gemini uses 'user' and 'model' roles (not 'assistant')
+    final contents = <Map<String, dynamic>>[];
+    String systemText = '';
+
+    for (final msg in messages) {
+      final role = msg['role'] ?? 'user';
+      final text = msg['content'] ?? '';
+      if (role == 'system') {
+        systemText += '$text\n';
+        continue;
+      }
+      final geminiRole = (role == 'assistant') ? 'model' : 'user';
+      contents.add({
+        'role': geminiRole,
+        'parts': [{'text': role == 'user' && systemText.isNotEmpty && contents.isEmpty
+            ? '$systemText\n$text'
+            : text}],
+      });
+    }
+
+    // If only system message and no user message, send as single prompt
+    if (contents.isEmpty && systemText.isNotEmpty) {
+      return _callGemini(systemText, retries: retries);
+    }
+
+    // Ensure first message is from 'user' (Gemini requirement)
+    if (contents.isNotEmpty && contents[0]['role'] != 'user') {
+      contents.insert(0, {
+        'role': 'user',
+        'parts': [{'text': systemText.isNotEmpty ? systemText : 'Hello'}],
+      });
+    }
+
+    Exception? lastError;
+    for (int attempt = 0; attempt <= retries; attempt++) {
+      try {
+        if (attempt > 0) {
+          await Future.delayed(Duration(milliseconds: 500 * attempt));
+        }
+
+        final url = '$_baseUrl?key=$_apiKey';
+        final response = await http
+            .post(
+              Uri.parse(url),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'contents': contents,
+                'generationConfig': {
+                  'temperature': 0.7,
+                  'maxOutputTokens': 512,
+                },
+              }),
+            )
+            .timeout(const Duration(seconds: 30));
+
+        if (response.statusCode != 200) {
+          throw Exception('Gemini API error ${response.statusCode}: ${response.body}');
+        }
+
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final candidates = json['candidates'] as List<dynamic>?;
+        if (candidates == null || candidates.isEmpty) {
+          throw Exception('No response from Gemini');
+        }
+
+        final content = candidates[0]['content'] as Map<String, dynamic>?;
+        final parts = content?['parts'] as List<dynamic>?;
+        final text = parts?[0]['text'] as String? ?? '';
+        if (text.trim().isEmpty) throw Exception('Empty response');
+        return text.trim();
+      } catch (e) {
+        lastError = e is Exception ? e : Exception(e.toString());
+      }
+    }
+    throw lastError ?? Exception('Failed after $retries retries');
   }
 
   // ── Translation ──────────────────────────────────────────────────────────
@@ -108,74 +244,113 @@ $text''';
     }
   }
 
-  // ── Negotiation Advice ───────────────────────────────────────────────────
-  /// Gets AI bargaining tips for a commodity.
+  // ── Smart Negotiation Advice (DATA-DRIVEN) ────────────────────────────────
+  /// Gets AI bargaining tips using REAL mandi price data for comparison.
+  ///
+  /// [mandiPriceData] contains actual min/max/modal prices from data.gov.in
+  /// so the AI can calculate exact markup % and fair price ranges.
   static Future<String> getNegotiationAdvice({
     required String item,
     required String vendorPrice,
     String marketPrice = 'standard',
     String language = 'Hinglish',
+    MandiPriceContext? mandiPriceData,
   }) async {
-    String langInstruction;
-    switch (language) {
-      case 'Hinglish':
-        langInstruction =
-            'Respond in Hinglish (natural mix of Hindi and English, Roman script). Use words like "bhaiya", "accha", "thoda" naturally.';
-        break;
-      case 'Hindi':
-        langInstruction =
-            'Respond ENTIRELY in Hindi using Devanagari script (हिंदी).';
-        break;
-      case 'Tamil':
-        langInstruction =
-            'Respond ENTIRELY in Tamil using Tamil script (தமிழ்). Use respectful "அண்ணா" (anna).';
-        break;
-      case 'Telugu':
-        langInstruction =
-            'Respond ENTIRELY in Telugu using Telugu script (తెలుగు). Use respectful "అన్నా" (anna).';
-        break;
-      case 'Marathi':
-        langInstruction =
-            'Respond ENTIRELY in Marathi using Devanagari script (मराठी). Use "भाऊ" or "दादा".';
-        break;
-      case 'Bengali':
-        langInstruction =
-            'Respond ENTIRELY in Bengali using Bengali script (বাংলা). Use "দাদা" (dada).';
-        break;
-      default:
-        langInstruction =
-            'Respond in simple, friendly English suitable for Indian markets.';
+    String langInstruction = _buildLangInstruction(language);
+
+    // ── Build data-driven context ──────────────────────────────────────
+    String priceAnalysis = '';
+    if (mandiPriceData != null) {
+      final markup = mandiPriceData.markupPercent;
+      final fairRange = '₹${mandiPriceData.minPrice.toStringAsFixed(0)}-₹${mandiPriceData.maxPrice.toStringAsFixed(0)}/quintal';
+      final modalStr = '₹${mandiPriceData.modalPrice.toStringAsFixed(0)}/quintal';
+      final suggestedTarget = mandiPriceData.suggestedBargainPrice;
+
+      priceAnalysis = '''
+REAL MANDI DATA (data.gov.in):
+- Market: ${mandiPriceData.market}, ${mandiPriceData.district}
+- Min Price: ₹${mandiPriceData.minPrice.toStringAsFixed(0)}/quintal
+- Max Price: ₹${mandiPriceData.maxPrice.toStringAsFixed(0)}/quintal
+- Modal Price (most common): $modalStr
+- Market Range: $fairRange
+- Vendor's Markup: ${markup > 0 ? '+${markup.toStringAsFixed(1)}% above modal' : '${markup.toStringAsFixed(1)}% below modal'}
+- SUGGESTED BARGAIN TARGET: ₹${suggestedTarget.toStringAsFixed(0)}/quintal
+
+ANALYSIS:
+${_getVerdictFromMarkup(markup)}''';
+    } else {
+      priceAnalysis = 'No real mandi data available. Use general market knowledge for Feb 2026.';
     }
 
     final prompt =
-        '''You are a friendly, street-smart market expert helping with price negotiations at an Indian mandi.
+        '''You are a DATA-DRIVEN market negotiation expert for Indian mandis.
 
 SCENARIO:
 - Item: $item
 - Vendor's asking price: $vendorPrice
-- Market reference: ${marketPrice != 'standard' ? marketPrice : "Use your knowledge of typical Feb 2026 Indian market prices"}
+$priceAnalysis
 
 $langInstruction
 
-Provide PRACTICAL negotiation advice:
-1. Quick verdict: Is this price fair, slightly high, or overpriced? (1 line)
-2. A ready-to-use negotiation phrase the buyer can say directly to the vendor (make it natural!)
-3. One smart tip (bulk discount, quality check, timing, etc.)
+RULES — YOU MUST FOLLOW:
+1. ALWAYS reference the EXACT mandi data numbers (min, max, modal price). Show the numbers!
+2. Calculate the EXACT difference between vendor price and modal/fair price
+3. Give a SPECIFIC counter-offer amount (not vague "10-15 rupees kam")
+4. Explain WHY that counter-offer is fair (backed by data)
+5. Give one ready-to-use negotiation dialogue
 
-STYLE:
-- Keep it under 80 words total
-- Be warm and friendly, like advice from a helpful neighbor
-- NO markdown, NO bullet points, NO asterisks
-- Write as flowing text, like someone speaking
-- Respectful bargaining is an art form in Indian markets! 🙏''';
+FORMAT (keep under 100 words):
+Line 1: VERDICT — [Fair/Slightly High/Overpriced] + exact markup %
+Line 2: DATA — "Mandi modal price is ₹X, vendor is charging ₹Y (Z% more)"
+Line 3: COUNTER-OFFER — "Offer ₹[specific amount] because [reason]"
+Line 4: DIALOGUE — A natural phrase the buyer can say using the data
+
+NO markdown. NO bullets. NO asterisks. Write as flowing text.''';
 
     try {
       return await _generate(prompt);
     } catch (e) {
-      if (language == 'Hindi') {
-        return 'भाई साहब, थोड़ा कम कर दीजिए। बाज़ार में देखकर आया हूँ, ₹10-15 कम में मिल रहा है। रोज़ का ग्राहक बनूँगा! 🙏';
+      // Smart fallback using real data if available
+      if (mandiPriceData != null) {
+        final target = mandiPriceData.suggestedBargainPrice.toStringAsFixed(0);
+        final modal = mandiPriceData.modalPrice.toStringAsFixed(0);
+        if (language == 'Hindi') {
+          return 'मंडी का मोडल भाव ₹$modal/क्विंटल है। ₹$target/क्विंटल का ऑफर दें — यह बाज़ार भाव के हिसाब से सही है।';
+        }
+        return 'Bhaiya, mandi ka modal rate ₹$modal/quintal hai. ₹$target/quintal pe de do — ye market rate ke hisaab se fair hai!';
       }
-      return 'Bhaiya, thoda kam kar do na. Market mein dekh ke aaya hoon, ₹10-15 kam mein mil raha hai. Regular customer ban jayenge! 🙏';
+      if (language == 'Hindi') {
+        return 'माफ़ कीजिए, अभी सलाह नहीं मिल पाई। कृपया दोबारा कोशिश करें।';
+      }
+      return 'Sorry, could not get advice right now. Please try again.';
+    }
+  }
+
+  /// Get verdict text from markup percentage
+  static String _getVerdictFromMarkup(double markup) {
+    if (markup <= 5) return 'FAIR PRICE — Close to market rate. Minor bargain possible.';
+    if (markup <= 15) return 'SLIGHTLY HIGH — 5-15% above market. Bargain down to modal.';
+    if (markup <= 30) return 'OVERPRICED — Significant markup. Push hard toward modal price.';
+    return 'VERY OVERPRICED — $markup% above market! Walk away or demand modal rate.';
+  }
+
+  /// Build language instruction string
+  static String _buildLangInstruction(String language) {
+    switch (language) {
+      case 'Hinglish':
+        return 'Respond in Hinglish (natural mix of Hindi and English, Roman script). Use words like "bhaiya", "dekho", "mandi ka rate" naturally.';
+      case 'Hindi':
+        return 'Respond ENTIRELY in Hindi using Devanagari script (हिंदी).';
+      case 'Tamil':
+        return 'Respond ENTIRELY in Tamil using Tamil script (தமிழ்). Use respectful "அண்ணா" (anna).';
+      case 'Telugu':
+        return 'Respond ENTIRELY in Telugu using Telugu script (తెలుగు). Use respectful "అన్నా" (anna).';
+      case 'Marathi':
+        return 'Respond ENTIRELY in Marathi using Devanagari script (मराठी). Use "भाऊ" or "दादा".';
+      case 'Bengali':
+        return 'Respond ENTIRELY in Bengali using Bengali script (বাংলা). Use "দাদা" (dada).';
+      default:
+        return 'Respond in simple, friendly English suitable for Indian markets.';
     }
   }
 
@@ -205,11 +380,13 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
     }
   }
 
-  // ── AI Market Chat ───────────────────────────────────────────────────────
+  // ── AI Market Chat (with conversation history) ───────────────────────────
   /// Conversational assistant for market queries.
+  /// Accepts optional [history] to maintain conversation context.
   static Future<String> chat({
     required String message,
     String language = 'Hinglish',
+    List<ChatHistoryItem> history = const [],
   }) async {
     String langInstruction;
     if (language == 'Hinglish') {
@@ -223,31 +400,63 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
       langInstruction = 'Respond in simple, friendly English.';
     }
 
-    final prompt =
-        '''You are a helpful AI assistant for Indian market vendors and buyers at local mandis.
-
-$langInstruction
-
-You can help with:
-- Market prices and trends
-- Negotiation tips
-- Quality assessment of produce
-- Storage and handling tips
-- Best time to buy/sell
-- Market locations and timings
-- Any other market-related questions
-
-User's question: $message
-
-Provide a helpful, practical response. Keep it under 100 words.
-Be friendly and conversational, like a knowledgeable friend who works in the market.
-No markdown formatting.''';
-
     try {
-      return await _generate(prompt);
+      // Build Gemini messages array with conversation history
+      final messages = <Map<String, String>>[
+        {
+          'role': 'system',
+          'content': '$_systemInstruction\n\n$langInstruction',
+        },
+      ];
+
+      // Add past messages as context (limit to last 10 for token efficiency)
+      final recentHistory = history.length > 10
+          ? history.sublist(history.length - 10)
+          : history;
+      for (final item in recentHistory) {
+        messages.add({
+          'role': item.isUser ? 'user' : 'assistant',
+          'content': item.text,
+        });
+      }
+
+      // Add current user message
+      messages.add({'role': 'user', 'content': message});
+
+      debugPrint(
+        'MandiAIService.chat: Sending ${messages.length} messages to Gemini',
+      );
+
+      final result = await _callGeminiMultiTurn(messages, retries: 2);
+      return result;
     } catch (e) {
-      return 'Sorry, I couldn\'t process that. Please try asking again!';
+      debugPrint('MandiAIService.chat error: $e');
+      return _chatErrorFallback(language, e.toString());
     }
+  }
+
+  /// Provides a meaningful error fallback for chat failures.
+  static String _chatErrorFallback(String language, String error) {
+    debugPrint('MandiAIService chat error details: $error');
+
+    if (error.contains('400')) {
+      return 'Invalid request. Please rephrase and try again.';
+    }
+    if (error.contains('401') || error.contains('403') || error.contains('API_KEY')) {
+      return 'API key issue detected. Please check the Gemini API key.';
+    }
+    if (error.contains('429') || error.contains('rate') || error.contains('RESOURCE_EXHAUSTED')) {
+      return 'Too many requests! Please wait a moment and try again.';
+    }
+    if (error.contains('timeout') || error.contains('TimeoutException')) {
+      return 'Request timed out. Check your internet connection and try again.';
+    }
+    if (language == 'Hindi') {
+      return 'माफ़ कीजिए, जवाब नहीं मिल पाया। कृपया दोबारा कोशिश करें।';
+    }
+    // Show actual error for debugging
+    final shortError = error.length > 120 ? error.substring(0, 120) : error;
+    return 'Sorry, couldn\'t respond. Error: $shortError';
   }
 
   // ── Smart Phrases ────────────────────────────────────────────────────────
@@ -296,5 +505,61 @@ No numbering, no explanations, just the phrases.''';
         'Accha chal, 2 kg le leta hoon, thoda discount dedo?',
       ];
     }
+  }
+}
+
+/// Model for passing chat history to the AI service.
+class ChatHistoryItem {
+  final String text;
+  final bool isUser;
+
+  const ChatHistoryItem({required this.text, required this.isUser});
+}
+
+/// Real mandi price context for data-driven bargaining.
+/// Prices are in ₹/quintal from data.gov.in.
+class MandiPriceContext {
+  final String market;
+  final String district;
+  final String commodity;
+  final double minPrice;
+  final double maxPrice;
+  final double modalPrice;
+  final double vendorPriceNumeric; // parsed vendor price in ₹/quintal
+
+  const MandiPriceContext({
+    required this.market,
+    required this.district,
+    required this.commodity,
+    required this.minPrice,
+    required this.maxPrice,
+    required this.modalPrice,
+    required this.vendorPriceNumeric,
+  });
+
+  /// How much % above/below modal the vendor is charging
+  double get markupPercent =>
+      modalPrice > 0 ? ((vendorPriceNumeric - modalPrice) / modalPrice) * 100 : 0;
+
+  /// Smart suggested bargain target:
+  /// - If vendor > max: target = modal + 5%
+  /// - If vendor > modal: target = modal
+  /// - If vendor <= modal: it's fair, target = vendor price
+  double get suggestedBargainPrice {
+    if (vendorPriceNumeric > maxPrice) {
+      return modalPrice * 1.05; // slightly above modal
+    } else if (vendorPriceNumeric > modalPrice) {
+      return modalPrice; // push to modal
+    }
+    return vendorPriceNumeric; // already fair
+  }
+
+  /// Price verdict
+  String get verdict {
+    final markup = markupPercent;
+    if (markup <= 5) return 'FAIR';
+    if (markup <= 15) return 'SLIGHTLY HIGH';
+    if (markup <= 30) return 'OVERPRICED';
+    return 'VERY OVERPRICED';
   }
 }

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
 import '../theme/app_colors.dart';
 import 'home/home_screen.dart';
 import 'history_screen.dart';
 import 'market_prices_screen.dart';
+import 'godown_screen.dart';
+import 'harvest_screen.dart';
+import 'market_recommendation_screen.dart';
 import 'profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -20,27 +25,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const HomeScreen(),
     const HistoryScreen(),
     const MarketPricesScreen(),
+    const GodownScreen(),
+    const HarvestScreen(),
+    const MarketRecommendationScreen(),
     const ProfileScreen(),
-  ];
-
-  final List<_NavItem> _navItems = const [
-    _NavItem(icon: Icons.home_rounded, label: 'Home', emoji: '🏠'),
-    _NavItem(icon: Icons.history_rounded, label: 'History', emoji: '📋'),
-    _NavItem(
-      icon: Icons.store,
-      label: 'Mandi',
-      emoji: '💹',
-    ),
-    _NavItem(icon: Icons.person_rounded, label: 'Profile', emoji: '👤'),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+
+    final navItems = [
+      _NavItem(icon: Icons.home_rounded, label: lang.tr('nav_home'), emoji: '🏠'),
+      _NavItem(icon: Icons.history_rounded, label: lang.tr('nav_history'), emoji: '📋'),
+      _NavItem(icon: Icons.store, label: lang.tr('nav_mandi'), emoji: '💹'),
+      _NavItem(icon: Icons.warehouse_rounded, label: lang.tr('nav_godown'), emoji: '🏭'),
+      _NavItem(icon: Icons.agriculture, label: lang.tr('nav_harvest'), emoji: '🌾'),
+      _NavItem(icon: Icons.gps_fixed_rounded, label: lang.tr('nav_best_market'), emoji: '🎯'),
+      _NavItem(icon: Icons.person_rounded, label: lang.tr('nav_profile'), emoji: '👤'),
+    ];
+
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: _AgriVistaBottomNav(
         currentIndex: _currentIndex,
-        items: _navItems,
+        items: navItems,
         onTap: (i) => setState(() => _currentIndex = i),
       ),
     );

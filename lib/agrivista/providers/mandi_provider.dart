@@ -404,15 +404,24 @@ class MandiProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Build history from previous messages (exclude the just-added user msg)
+      final history = _chatMessages
+          .sublist(0, _chatMessages.length - 1)
+          .map((m) => ChatHistoryItem(text: m.text, isUser: m.isUser))
+          .toList();
+
       final reply = await MandiAIService.chat(
         message: message,
         language: _chatLanguage,
+        history: history,
       );
       _chatMessages.add(ChatMessage(text: reply, isUser: false));
     } catch (e) {
+      debugPrint('sendChatMessage error: $e');
       _chatMessages.add(
         ChatMessage(
-          text: 'Sorry, couldn\'t get a response. Please try again.',
+          text:
+              'Sorry, couldn\'t get a response. Error: ${e.toString().length > 80 ? e.toString().substring(0, 80) : e}',
           isUser: false,
         ),
       );
@@ -422,7 +431,8 @@ class MandiProvider extends ChangeNotifier {
     }
   }
 
-  /// Get negotiation advice for a commodity
+  /// Get negotiation advice for a commodity — DATA-DRIVEN.
+  /// Automatically finds matching mandi price data and passes it to AI.
   Future<void> fetchNegotiationAdvice({
     required String item,
     required String vendorPrice,
@@ -433,11 +443,51 @@ class MandiProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // ── Find matching mandi price data for this item ──────────────
+      MandiPriceContext? priceContext;
+      final itemLower = item.toLowerCase();
+
+      // Search all loaded mandi prices for a commodity match
+      final matchingPrices = _prices.where((p) =>
+          p.commodity.toLowerCase().contains(itemLower) ||
+          itemLower.contains(p.commodity.toLowerCase())).toList();
+
+      if (matchingPrices.isNotEmpty) {
+        // Use the first match (best match)
+        final best = matchingPrices.first;
+
+        // Try to parse vendor price as a number
+        double vendorNumeric = best.modalPrice; // default
+        final numMatch = RegExp(r'[\d,]+\.?\d*').firstMatch(vendorPrice);
+        if (numMatch != null) {
+          vendorNumeric = double.tryParse(
+              numMatch.group(0)!.replaceAll(',', '')) ?? best.modalPrice;
+
+          // If vendor entered per-kg price, convert to per-quintal for comparison
+          if (vendorPrice.toLowerCase().contains('/kg') ||
+              vendorPrice.toLowerCase().contains('per kg') ||
+              (!vendorPrice.toLowerCase().contains('quintal') && vendorNumeric < 500)) {
+            vendorNumeric *= 100; // 1 quintal = 100 kg
+          }
+        }
+
+        priceContext = MandiPriceContext(
+          market: best.market,
+          district: best.district,
+          commodity: best.commodity,
+          minPrice: best.minPrice,
+          maxPrice: best.maxPrice,
+          modalPrice: best.modalPrice,
+          vendorPriceNumeric: vendorNumeric,
+        );
+      }
+
       _negotiationAdvice = await MandiAIService.getNegotiationAdvice(
         item: item,
         vendorPrice: vendorPrice,
         marketPrice: marketPrice ?? 'standard',
         language: _chatLanguage,
+        mandiPriceData: priceContext,
       );
     } catch (e) {
       _negotiationAdvice = 'Could not get advice. Try again.';

@@ -1,0 +1,92 @@
+[
+    {
+        "item": "Tomato",
+        "price": "40/kg",
+        "location": "Azadpur Mandi, Delhi",
+        "trend": "up"
+    },
+    {
+        "item": "Potato",
+        "price": "25/kg",
+        "location": "Koyambedu Market, Chennai",
+        "trend": "stable"
+    },
+    {
+        "item": "Onion",
+        "price": "35/kg",
+        "location": "Lasalgaon Mandi, Nashik",
+        "trend": "down"
+    },
+    {
+        "item": "Carrot",
+        "price": "45/kg",
+        "location": "Vashi APMC, Mumbai",
+        "trend": "up"
+    },
+    {
+        "item": "Cauliflower",
+        "price": "30/kg",
+        "location": "Koley Market, Kolkata",
+        "trend": "stable"
+    },
+    {
+        "item": "Cabbage",
+        "price": "20/kg",
+        "location": "Bowenpally Market, Hyderabad",
+        "trend": "down"
+    },
+    {
+        "item": "Spinach",
+        "price": "15/bunch",
+        "location": "KR Market, Bangalore",
+        "trend": "stable"
+    },
+    {
+        "item": "Brinjal",
+        "price": "28/kg",
+        "location": "Shivajinagar APMC, Pune",
+        "trend": "up"
+    },
+    {
+        "item": "Capsicum",
+        "price": "60/kg",
+        "location": "Ghazipur Mandi, Delhi",
+        "trend": "up"
+    },
+    {
+        "item": "Cucumber",
+        "price": "22/kg",
+        "location": "Madiwala Market, Bangalore",
+        "trend": "down"
+    },
+    {
+        "item": "Garlic",
+        "price": "120/kg",
+        "location": "Mandsaur Mandi, MP",
+        "trend": "stable"
+    },
+    {
+        "item": "Ginger",
+        "price": "150/kg",
+        "location": "Siliguri Market, West Bengal",
+        "trend": "up"
+    },
+    {
+        "item": "Green Chilli",
+        "price": "80/kg",
+        "location": "Guntur Mandi, AP",
+        "trend": "up"
+    },
+    {
+        "item": "Banana",
+        "price": "40/dozen",
+        "location": "Theni Market, Tamil Nadu",
+        "trend": "stable"
+    },
+    {
+        "item": "Apple",
+        "price": "180/kg",
+        "location": "Azadpur Mandi, Delhi",
+        "trend": "down"
+    }
+]
