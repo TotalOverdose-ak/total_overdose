@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../services/market_recommendation_service.dart';
 import '../services/export_price_service.dart';
 import '../services/osrm_distance_service.dart';
+import '../../config/app_config.dart';
 
 /// Provider that orchestrates market recommendation analysis.
 ///
@@ -206,10 +207,7 @@ Give a brief (under 80 words), practical recommendation explaining:
 
 Be direct, confident, and data-driven. No markdown. No bullets. Write as flowing text like a trusted advisor.''';
 
-      const apiKey = 'AIzaSyBgN4ijOo--Tquajvv1_D8A8ifi6U8Tw_4';
-      const model = 'gemini-2.0-flash';
-      const url =
-          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey';
+      final url = '${AppConfig.geminiBaseUrl}?key=${AppConfig.geminiApiKey}';
 
       final response = await http
           .post(

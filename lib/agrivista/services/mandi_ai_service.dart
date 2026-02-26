@@ -1,17 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../../config/app_config.dart';
 
 /// AI Service for Mandi features using Google Gemini API.
 ///
 /// Uses Gemini REST API (`generativelanguage.googleapis.com`) which supports
 /// browser CORS. Features: Translation, Smart Negotiation, Price insights, AI Chat.
 class MandiAIService {
-  // ── Gemini Configuration ─────────────────────────────────────────────────
-  static const String _apiKey = 'AIzaSyBgN4ijOo--Tquajvv1_D8A8ifi6U8Tw_4';
-  static const String _model = 'gemini-2.0-flash';
-  static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent';
+  // ── Gemini Configuration (from AppConfig) ──────────────────────────────
+  static String get _apiKey => AppConfig.geminiApiKey;
+  static String get _baseUrl => AppConfig.geminiBaseUrl;
 
   /// System instruction for the AI assistant.
   static const String _systemInstruction =
@@ -48,14 +47,23 @@ class MandiAIService {
   }
 
   /// Makes the actual Gemini REST API call with retry logic.
-  static Future<String> _callGemini(String prompt, {int retries = 2}) async {
+  static Future<String> _callGemini(String prompt, {int retries = 3}) async {
     Exception? lastError;
 
     for (int attempt = 0; attempt <= retries; attempt++) {
       try {
         if (attempt > 0) {
-          await Future.delayed(Duration(milliseconds: 500 * attempt));
-          debugPrint('MandiAIService: Retry attempt $attempt');
+          // Longer backoff for rate-limit errors (429)
+          final isRateLimit =
+              lastError.toString().contains('429') ||
+              lastError.toString().contains('RESOURCE_EXHAUSTED');
+          final delay = isRateLimit
+              ? Duration(seconds: 3 * attempt) // 3s, 6s, 9s for rate limits
+              : Duration(milliseconds: 1000 * attempt); // 1s, 2s for others
+          debugPrint(
+            'MandiAIService: Retry attempt $attempt (waiting ${delay.inMilliseconds}ms)',
+          );
+          await Future.delayed(delay);
         }
 
         final url = '$_baseUrl?key=$_apiKey';
@@ -79,6 +87,16 @@ class MandiAIService {
               }),
             )
             .timeout(const Duration(seconds: 30));
+
+        // Gemini returns 429 OR 403+RESOURCE_EXHAUSTED for rate limits
+        if (response.statusCode == 429 ||
+            (response.statusCode == 403 &&
+                response.body.contains('RESOURCE_EXHAUSTED'))) {
+          debugPrint(
+            'Gemini rate limited (${response.statusCode}) — will retry after backoff',
+          );
+          throw Exception('429: Rate limited - RESOURCE_EXHAUSTED');
+        }
 
         if (response.statusCode != 200) {
           debugPrint('Gemini error: ${response.statusCode} ${response.body}');
@@ -162,7 +180,13 @@ class MandiAIService {
     for (int attempt = 0; attempt <= retries; attempt++) {
       try {
         if (attempt > 0) {
-          await Future.delayed(Duration(milliseconds: 500 * attempt));
+          final isRateLimit =
+              lastError.toString().contains('429') ||
+              lastError.toString().contains('RESOURCE_EXHAUSTED');
+          final delay = isRateLimit
+              ? Duration(seconds: 3 * attempt)
+              : Duration(milliseconds: 1000 * attempt);
+          await Future.delayed(delay);
         }
 
         final url = '$_baseUrl?key=$_apiKey';
@@ -179,6 +203,16 @@ class MandiAIService {
               }),
             )
             .timeout(const Duration(seconds: 30));
+
+        // Gemini returns 429 OR 403+RESOURCE_EXHAUSTED for rate limits
+        if (response.statusCode == 429 ||
+            (response.statusCode == 403 &&
+                response.body.contains('RESOURCE_EXHAUSTED'))) {
+          debugPrint(
+            'Gemini rate limited (${response.statusCode}) — will retry after backoff',
+          );
+          throw Exception('429: Rate limited - RESOURCE_EXHAUSTED');
+        }
 
         if (response.statusCode != 200) {
           throw Exception(
@@ -435,7 +469,7 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
         'MandiAIService.chat: Sending ${messages.length} messages to Gemini',
       );
 
-      final result = await _callGeminiMultiTurn(messages, retries: 2);
+      final result = await _callGeminiMultiTurn(messages, retries: 3);
       return result;
     } catch (e) {
       debugPrint('MandiAIService.chat error: $e');
@@ -447,6 +481,17 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
   static String _chatErrorFallback(String language, String error) {
     debugPrint('MandiAIService chat error details: $error');
 
+    // ⚠️ Check RESOURCE_EXHAUSTED / rate-limit FIRST (before 403)
+    // because Gemini returns 403 + RESOURCE_EXHAUSTED for quota issues
+    if (error.contains('429') ||
+        error.contains('RESOURCE_EXHAUSTED') ||
+        error.contains('rate') ||
+        error.contains('quota')) {
+      if (language == 'Hindi') {
+        return 'बहुत ज़्यादा रिक्वेस्ट हो गई हैं। कृपया 30 सेकंड रुकें और फिर से कोशिश करें।';
+      }
+      return 'Rate limit hit! Please wait 30 seconds and try again. (Free tier limit: 15 requests/min)';
+    }
     if (error.contains('400')) {
       return 'Invalid request. Please rephrase and try again.';
     }
@@ -454,11 +499,6 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
         error.contains('403') ||
         error.contains('API_KEY')) {
       return 'API key issue detected. Please check the Gemini API key.';
-    }
-    if (error.contains('429') ||
-        error.contains('rate') ||
-        error.contains('RESOURCE_EXHAUSTED')) {
-      return 'Too many requests! Please wait a moment and try again.';
     }
     if (error.contains('timeout') || error.contains('TimeoutException')) {
       return 'Request timed out. Check your internet connection and try again.';

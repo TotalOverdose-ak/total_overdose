@@ -86,18 +86,24 @@ class _GodownScreenState extends State<GodownScreen> {
     });
 
     try {
-      // Parallel AI calls for storage advice, location suggestions & soil health
+      // Sequential AI calls to avoid Gemini free-tier rate limit (15 RPM)
       final cityName = weather?.city ?? 'Nagpur';
-      final results = await Future.wait([
-        _getStorageAdvice(crop, weather, lang),
-        _getLocationAdvice(crop, weather, lang),
-        _fetchSoilHealth(cityName),
-      ]);
+
+      // 1. Soil health (SoilGrids API - separate, non-Gemini) + storage advice (Gemini)
+      final soilFuture = _fetchSoilHealth(cityName);
+      final storageAdvice = await _getStorageAdvice(crop, weather, lang);
+
+      // 2. Small delay to avoid Gemini rate limits
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      // 3. Location advice (Gemini)
+      final locationAdvice = await _getLocationAdvice(crop, weather, lang);
+      await soilFuture; // ensure soil data is also done
 
       if (mounted) {
         setState(() {
-          _storageAdvice = results[0] as String?;
-          _locationAdvice = results[1] as String?;
+          _storageAdvice = storageAdvice;
+          _locationAdvice = locationAdvice;
           _riskLevel = _calculateRisk(crop, weather);
           _isLoading = false;
         });

@@ -36,13 +36,37 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final lang = context.watch<LanguageProvider>();
 
     final navItems = [
-      _NavItem(icon: Icons.home_rounded, label: lang.tr('nav_home'), emoji: '🏠'),
-      _NavItem(icon: Icons.history_rounded, label: lang.tr('nav_history'), emoji: '📋'),
+      _NavItem(
+        icon: Icons.home_rounded,
+        label: lang.tr('nav_home'),
+        emoji: '🏠',
+      ),
+      _NavItem(
+        icon: Icons.history_rounded,
+        label: lang.tr('nav_history'),
+        emoji: '📋',
+      ),
       _NavItem(icon: Icons.store, label: lang.tr('nav_mandi'), emoji: '💹'),
-      _NavItem(icon: Icons.warehouse_rounded, label: lang.tr('nav_godown'), emoji: '🏭'),
-      _NavItem(icon: Icons.agriculture, label: lang.tr('nav_harvest'), emoji: '🌾'),
-      _NavItem(icon: Icons.gps_fixed_rounded, label: lang.tr('nav_best_market'), emoji: '🎯'),
-      _NavItem(icon: Icons.person_rounded, label: lang.tr('nav_profile'), emoji: '👤'),
+      _NavItem(
+        icon: Icons.warehouse_rounded,
+        label: lang.tr('nav_godown'),
+        emoji: '🏭',
+      ),
+      _NavItem(
+        icon: Icons.agriculture,
+        label: lang.tr('nav_harvest'),
+        emoji: '🌾',
+      ),
+      _NavItem(
+        icon: Icons.gps_fixed_rounded,
+        label: lang.tr('nav_best_market'),
+        emoji: '🎯',
+      ),
+      _NavItem(
+        icon: Icons.person_rounded,
+        label: lang.tr('nav_profile'),
+        emoji: '👤',
+      ),
     ];
 
     return Scaffold(
@@ -117,21 +141,21 @@ class _AgriVistaBottomNav extends StatelessWidget {
                             item.icon,
                             color: isSelected
                                 ? AppColors.primaryGreen
-                                : AppColors.textLight,
-                            size: 24,
+                                : AppColors.textMedium,
+                            size: 26,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item.label,
                           style: GoogleFonts.poppins(
-                            fontSize: 9.5,
+                            fontSize: 10,
                             fontWeight: isSelected
                                 ? FontWeight.w700
-                                : FontWeight.w400,
+                                : FontWeight.w500,
                             color: isSelected
                                 ? AppColors.primaryGreen
-                                : AppColors.textLight,
+                                : AppColors.textMedium,
                           ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
