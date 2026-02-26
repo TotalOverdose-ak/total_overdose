@@ -1,16 +1,16 @@
-# agrichain_total
+Agri_Vesta
 
-A new Flutter project.
+Problem Statement: India's farmers lose up to 40% of produce not due to poor farming, but poor timing and market mismatch. Build an AI system that ingests real weather patterns, soil health indicators, and historical mandi price data to recommend the optimal harvest window and best target market for a given crop and region. Beyond harvest, the system should assess post-harvest spoilage risk based on storage conditions and transit time, and suggest preservation actions ranked by cost and effectiveness. The solution must be designed for a farmer with a basic Android phone — outputs should be in plain language with minimal data literacy required. Accuracy matters, but so does trust: the system should show why it made a recommendation, not just what it recommends. 
 
-## Getting Started
+Solution 💡
+AI Agrivesta:
 
-This project is a starting point for a Flutter application.
+🌦 Real-time weather patterns
+📈 Historical Mandi Price data
 
-A few resources to get you started if this is your first Flutter project:
+It then provides:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Best harvest timing recommendation
+2. Market price prediction
+3. Suggested selling window
+4. Risk alerts (weather / price drop)
