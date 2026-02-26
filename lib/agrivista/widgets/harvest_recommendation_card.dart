@@ -54,7 +54,7 @@ class _HarvestRecommendationCardState extends State<HarvestRecommendationCard>
     return Container(
       decoration: BoxDecoration(
         gradient: AppColors.cardGradientGreen,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: AppColors.primaryGreen.withValues(alpha: 0.3),
@@ -78,9 +78,9 @@ class _HarvestRecommendationCardState extends State<HarvestRecommendationCard>
                     Expanded(
                       child: Text(
                         'Harvest Window',
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           fontSize: 17,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
                         ),
                       ),
@@ -112,9 +112,9 @@ class _HarvestRecommendationCardState extends State<HarvestRecommendationCard>
                       const SizedBox(width: 10),
                       Text(
                         '${widget.harvestWindow.startDate}  →  ${widget.harvestWindow.endDate}',
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           fontSize: 20,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: 0.5,
                         ),
@@ -152,7 +152,7 @@ class _HarvestRecommendationCardState extends State<HarvestRecommendationCard>
                             const SizedBox(width: 5),
                             Text(
                               _expanded ? 'Hide Reason' : 'Why this date?',
-                              style: GoogleFonts.nunito(
+                              style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
@@ -201,7 +201,7 @@ class _HarvestRecommendationCardState extends State<HarvestRecommendationCard>
                     Expanded(
                       child: Text(
                         widget.harvestWindow.explanation,
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           color: Colors.white,
                           fontSize: 13,
                           height: 1.5,

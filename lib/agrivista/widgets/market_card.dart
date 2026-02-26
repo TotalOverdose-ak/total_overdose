@@ -13,7 +13,7 @@ class MarketCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -30,7 +30,7 @@ class MarketCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.mintGreen,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+                top: Radius.circular(20),
               ),
             ),
             child: Row(
@@ -43,7 +43,7 @@ class MarketCard extends StatelessWidget {
                     children: [
                       Text(
                         'Best Mandi',
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           color: AppColors.textLight,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -51,8 +51,8 @@ class MarketCard extends StatelessWidget {
                       ),
                       Text(
                         mandi.mandiName,
-                        style: GoogleFonts.nunito(
-                          color: AppColors.primaryGreen,
+                        style: GoogleFonts.poppins(
+                          color: AppColors.textDark,
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                         ),
@@ -66,7 +66,7 @@ class MarketCard extends StatelessWidget {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -80,8 +80,8 @@ class MarketCard extends StatelessWidget {
                       const SizedBox(width: 3),
                       Text(
                         '${mandi.distanceKm.toStringAsFixed(0)} km',
-                        style: GoogleFonts.nunito(
-                          color: AppColors.primaryGreen,
+                        style: GoogleFonts.poppins(
+                          color: AppColors.textDark,
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),
@@ -195,7 +195,7 @@ class _StatPill extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               value,
-              style: GoogleFonts.nunito(
+              style: GoogleFonts.poppins(
                 color: color,
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -229,7 +229,7 @@ class _Last3DaysPriceRow extends StatelessWidget {
         children: [
           Text(
             'Last 3 Days Price Trend',
-            style: GoogleFonts.nunito(
+            style: GoogleFonts.poppins(
               fontWeight: FontWeight.w700,
               fontSize: 12,
               color: AppColors.textLight,
@@ -246,7 +246,7 @@ class _Last3DaysPriceRow extends StatelessWidget {
                 children: [
                   Text(
                     '₹${e.value.toStringAsFixed(0)}',
-                    style: GoogleFonts.nunito(
+                    style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                       color: isLast

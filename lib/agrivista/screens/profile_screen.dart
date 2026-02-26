@@ -16,12 +16,12 @@ class ProfileScreen extends StatelessWidget {
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
-            backgroundColor: AppColors.primaryGreen,
+            backgroundColor: const Color(0xFF2E7D32),
             title: Text(
               'My Profile',
-              style: GoogleFonts.nunito(
+              style: GoogleFonts.poppins(
                 color: Colors.white,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 fontSize: 20,
               ),
             ),
@@ -51,15 +51,15 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         'Ramesh Kumar',
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           fontSize: 20,
                         ),
                       ),
                       Text(
                         'Farmer  •  Nagpur, Maharashtra',
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 13,
                         ),
@@ -130,15 +130,15 @@ class _StatsRow extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   s['value']!,
-                  style: GoogleFonts.nunito(
-                    fontWeight: FontWeight.w800,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w700,
                     fontSize: 16,
-                    color: AppColors.primaryGreen,
+                    color: AppColors.textDark,
                   ),
                 ),
                 Text(
                   s['label']!,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: AppColors.textLight,
                   ),
@@ -207,16 +207,16 @@ class _ProfileRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.primaryGreen),
+          Icon(icon, size: 18, color: AppColors.textDark),
           const SizedBox(width: 10),
           Text(
             label,
-            style: GoogleFonts.nunito(fontSize: 13, color: AppColors.textLight),
+            style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textLight),
           ),
           const Spacer(),
           Text(
             value,
-            style: GoogleFonts.nunito(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: AppColors.textDark,
@@ -263,7 +263,7 @@ class _MyCropsCard extends StatelessWidget {
                     children: [
                       Text(
                         c['name']!,
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                           color: AppColors.primaryGreen,
@@ -271,7 +271,7 @@ class _MyCropsCard extends StatelessWidget {
                       ),
                       Text(
                         c['season']!,
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           fontSize: 10,
                           color: AppColors.textLight,
                         ),
@@ -326,13 +326,13 @@ class _SettingsCard extends StatelessWidget {
                 Icon(
                   item['icon'] as IconData,
                   size: 20,
-                  color: AppColors.primaryGreen,
+                  color: AppColors.textDark,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     item['label'] as String,
-                    style: GoogleFonts.nunito(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textDark,
@@ -342,7 +342,7 @@ class _SettingsCard extends StatelessWidget {
                 if ((item['value'] as String).isNotEmpty)
                   Text(
                     item['value'] as String,
-                    style: GoogleFonts.nunito(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: AppColors.textLight,
                     ),
@@ -379,7 +379,7 @@ class _SectionCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -399,7 +399,7 @@ class _SectionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
                     color: AppColors.textDark,

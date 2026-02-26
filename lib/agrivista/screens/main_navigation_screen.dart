@@ -27,7 +27,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _NavItem(icon: Icons.home_rounded, label: 'Home', emoji: '🏠'),
     _NavItem(icon: Icons.history_rounded, label: 'History', emoji: '📋'),
     _NavItem(
-      icon: Icons.store_mall_directory_rounded,
+      icon: Icons.store,
       label: 'Mandi',
       emoji: '💹',
     ),
@@ -94,7 +94,7 @@ class _AgriVistaBottomNav extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.lavenderLight
+                          ? AppColors.mintGreen
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -107,7 +107,7 @@ class _AgriVistaBottomNav extends StatelessWidget {
                           child: Icon(
                             item.icon,
                             color: isSelected
-                                ? AppColors.lavenderDeep
+                                ? AppColors.primaryGreen
                                 : AppColors.textLight,
                             size: 24,
                           ),
@@ -118,10 +118,10 @@ class _AgriVistaBottomNav extends StatelessWidget {
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: isSelected
-                                ? FontWeight.w600
+                                ? FontWeight.w700
                                 : FontWeight.w400,
                             color: isSelected
-                                ? AppColors.lavenderDeep
+                                ? AppColors.primaryGreen
                                 : AppColors.textLight,
                           ),
                         ),

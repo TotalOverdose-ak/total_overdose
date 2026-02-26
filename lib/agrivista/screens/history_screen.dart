@@ -14,19 +14,19 @@ class HistoryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.lavender,
+        backgroundColor: const Color(0xFF2E7D32),
         elevation: 0,
         title: Text(
           'My History',
           style: GoogleFonts.poppins(
-            color: AppColors.textDark,
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
             fontSize: 20,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list, color: AppColors.textDark),
+            icon: const Icon(Icons.filter_list, color: Colors.white),
             onPressed: () {},
           ),
         ],
@@ -54,10 +54,10 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -65,9 +65,9 @@ class _HistoryCard extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           onTap: () {},
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -78,7 +78,7 @@ class _HistoryCard extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: AppColors.lavenderLight,
+                    color: AppColors.mintGreen,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -99,7 +99,7 @@ class _HistoryCard extends StatelessWidget {
                           Text(
                             entry.cropName,
                             style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                               fontSize: 16,
                               color: AppColors.textDark,
                             ),
@@ -132,7 +132,7 @@ class _HistoryCard extends StatelessWidget {
                           _InfoChip(
                             icon: Icons.calendar_today,
                             label: entry.harvestWindow,
-                            color: AppColors.lavenderDeep,
+                            color: AppColors.primaryGreen,
                           ),
                           const SizedBox(width: 8),
                           _InfoChip(

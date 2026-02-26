@@ -47,6 +47,48 @@ class DummyData {
       nameSanskrit: 'Aloo',
       imageAsset: 'assets/crops/potato.png',
     ),
+    CropModel(
+      id: 'rice',
+      name: 'Rice',
+      emoji: '🍚',
+      nameSanskrit: 'Chawal',
+      imageAsset: 'assets/crops/rice.png',
+    ),
+    CropModel(
+      id: 'cotton',
+      name: 'Cotton',
+      emoji: '🏵️',
+      nameSanskrit: 'Kapas',
+      imageAsset: 'assets/crops/cotton.png',
+    ),
+    CropModel(
+      id: 'sugarcane',
+      name: 'Sugarcane',
+      emoji: '🎋',
+      nameSanskrit: 'Ganna',
+      imageAsset: 'assets/crops/sugarcane.png',
+    ),
+    CropModel(
+      id: 'chilli',
+      name: 'Chilli',
+      emoji: '🌶️',
+      nameSanskrit: 'Mirchi',
+      imageAsset: 'assets/crops/chilli.png',
+    ),
+    CropModel(
+      id: 'groundnut',
+      name: 'Groundnut',
+      emoji: '🥜',
+      nameSanskrit: 'Moongfali',
+      imageAsset: 'assets/crops/groundnut.png',
+    ),
+    CropModel(
+      id: 'mustard',
+      name: 'Mustard',
+      emoji: '🌻',
+      nameSanskrit: 'Sarson',
+      imageAsset: 'assets/crops/mustard.png',
+    ),
   ];
 
   // ── Locations ────────────────────────────────────────────────────────────────

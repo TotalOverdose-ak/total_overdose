@@ -63,9 +63,9 @@ class _ResultScreenState extends State<ResultScreen>
           SliverAppBar(
             expandedHeight: 160,
             pinned: true,
-            backgroundColor: AppColors.lavender,
+            backgroundColor: AppColors.primaryGreen,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textDark),
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
@@ -85,8 +85,8 @@ class _ResultScreenState extends State<ResultScreen>
                 r.cropName,
                 style: GoogleFonts.poppins(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
               background: Container(
@@ -101,7 +101,7 @@ class _ResultScreenState extends State<ResultScreen>
                       Text(
                         'AI Recommendation',
                         style: GoogleFonts.poppins(
-                          color: AppColors.textMedium,
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -110,7 +110,7 @@ class _ResultScreenState extends State<ResultScreen>
                       Text(
                         r.cropName,
                         style: GoogleFonts.poppins(
-                          color: AppColors.textDark,
+                          color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                         ),
@@ -121,13 +121,13 @@ class _ResultScreenState extends State<ResultScreen>
                           const Icon(
                             Icons.location_on,
                             size: 13,
-                            color: AppColors.textLight,
+                            color: Colors.white70,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             r.location,
                             style: GoogleFonts.poppins(
-                              color: AppColors.textLight,
+                              color: Colors.white70,
                               fontSize: 12,
                             ),
                           ),
@@ -205,9 +205,9 @@ class _ResultScreenState extends State<ResultScreen>
             SnackBar(
               content: Text(
                 '🔊 Playing voice explanation…',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               ),
-              backgroundColor: AppColors.lavender,
+              backgroundColor: const Color(0xFF2E7D32),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -233,11 +233,11 @@ class _ActionButtonRow extends StatelessWidget {
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.lavenderDeep,
-              side: const BorderSide(color: AppColors.lavender),
+              foregroundColor: AppColors.primaryGreen,
+              side: const BorderSide(color: AppColors.primaryGreen),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
             onPressed: () {},
@@ -252,11 +252,11 @@ class _ActionButtonRow extends StatelessWidget {
               style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.lavender,
+              backgroundColor: AppColors.primaryGreen,
               foregroundColor: AppColors.textDark,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
             onPressed: () {
@@ -264,9 +264,9 @@ class _ActionButtonRow extends StatelessWidget {
                 SnackBar(
                   content: Text(
                     '✅ Recommendation saved!',
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                   ),
-                  backgroundColor: AppColors.lavender,
+                  backgroundColor: const Color(0xFF22223B),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),

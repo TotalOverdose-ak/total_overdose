@@ -1,83 +1,99 @@
-Problem Statement: India's farmers lose up to 40% of produce not due to poor farming, but poor timing and market mismatch. Build an AI system that ingests real weather patterns, soil health indicators, and historical mandi price data to recommend the optimal harvest window and best target market for a given crop and region. Beyond harvest, the system should assess post-harvest spoilage risk based on storage conditions and transit time, and suggest preservation actions ranked by cost and effectiveness. The solution must be designed for a farmer with a basic Android phone — outputs should be in plain language with minimal data literacy required. Accuracy matters, but so does trust: the system should show why it made a recommendation, not just what it recommends. 
+# 🌱 EcoBazaarX – Carbon Footprint Aware Shopping Assistant
+## 📌 Introduction
 
-Solution 💡
-AI Agrivesta:
+EcoBazaarX is a full-stack eco-friendly e-commerce application designed to create awareness about the environmental impact of consumer purchases.
+Users can explore products, view their carbon footprint score, track eco-impact analytics, and discover greener alternatives through an intelligent recommendation engine.
 
-🌦 Real-time weather patterns
-📈 Historical Mandi Price data
+The project includes a complete e-commerce workflow with authentication, role-based access, dashboards, and eco-insight visualizations, built using scalable and modern technologies.
 
-It then provides:
+---
+## 👥 Contributors
 
-1. Best harvest timing recommendation
-2. Market price prediction
-3. Suggested selling window
-4. Risk alerts (weather / price drop)
+| Role        | Name | GitHub |
+|-------------|------|--------|
+| 🛠️ Owner | <img src="https://github.com/AkashKeote.png" width="60"/> | [Akash Keote](https://github.com/AkashKeote) |
+| 👤 Contributor | <img src="https://github.com/chaitanya-aaa.png" width="60"/> | [Chaitanya Barappadi](https://github.com/chaitanya-aaa) |
 
-FEATURES ADDED TILL NOW:
-## 🌦 Weather API Integration
+---
+## 💻 Source Code
 
-The project now integrates real-time weather data using the Open-Meteo API.
+- **Frontend:** [EcoBazaarX Frontend](https://github.com/AkashKeote/EcoBazaarX)  
+- **Backend:** [EcoBazaarX Backend](https://github.com/AkashKeote/Backend-Springboot)
+ 
+---
+## 💡 Key Features
 
-### What was added:
-- Fetches live temperature, rainfall, and humidity data
-- Connects weather data to mandi price prediction input
-- Improves prediction accuracy by including environmental factors
+### 🌿 Carbon Footprint Awareness
 
-API Used:
-https://open-meteo.com/
+Displays carbon impact for products and recommends sustainable alternatives.
 
+### 🌐 Flutter Frontend
 
-## 🌾 Mandi Price Forecasting Feature
+Responsive, mobile-first UI offering smooth navigation and shopping experience.
 
-### 📌 Mandi Price Prediction Module
+### 🚀 Spring Boot Backend
 
-This project includes a **time-series based Mandi Price Forecasting system** that predicts future commodity prices using deep learning models.
+Secure REST API architecture ensuring scalability and efficient data handling.
+
+### 🗄 MySQL Database
+
+Cloud-hosted structured data storage using Railway.
+
+### 🔐 JWT Authentication + RBAC
+
+User roles include Admin, Shopkeeper, Customer for secure and organized workflows.
+
+### 📊 Analytics & Dashboards
+
+Eco-score tracking, activity analytics, and product impact insights.
+
+### 🛒 Complete E-commerce System
+
+Includes product listing, cart management, ordering, and eco-friendly recommendations.
 
 ---
 
-### 🔹 Key Functionalities
-
-- 📂 Upload historical mandi price dataset (CSV format)
-- 📊 Automatic preprocessing and normalization of price data
-- 📈 Integrated mandi price calculation (average across multiple mandis per date)
-- 🔄 Time-series sequence generation for model training
-- 🤖 1D CNN / LSTM based model for price prediction
-- 📉 Visualization of Actual vs Predicted Prices
-- 🔮 Next-day / multi-day price forecasting
-
----
-
-### 🧠 Model Used
-
-The system uses a **1D Convolutional Neural Network (1D CNN)** for time-based training.
-
-- Detects short-term price trends  
-- Fast training (within 10 minutes)  
-- Suitable for large historical datasets  
-
-> ⚡ The model can be extended to LSTM or CNN + LSTM hybrid architecture for improved forecasting accuracy.
+## 🛠️ Tech Stack
+| Layer               | Technology                     | Description                               |
+| ------------------- | ------------------------------ | ----------------------------------------- |
+| **Frontend**        | Flutter (Web)                  | UI, state management, and user experience |
+| **Backend**         | Spring Boot                    | REST APIs, business logic, security       |
+| **Database**        | MySQL (Railway)                | Product, user & order storage             |
+| **Authentication**  | JWT                            | Secure login & access control             |
+| **Deployment**      | Firebase Hosting, Render Cloud | Hosting for frontend and backend          |
+| **Version Control** | Git & GitHub                   | Code management & collaboration           |
 
 ---
 
-### 🏗 Model Architecture Diagram
+## 🚀 How to Run the Project
 
-<img align="centre" alt="coding" width="1200" src="ModelTrained.jpeg">
-
-
-
-### ⚙️ Technical Implementation
-
-- Python  
-- TensorFlow / Keras  
-- Pandas & NumPy  
-- Scikit-learn (MinMaxScaler)  
-- Matplotlib for visualization  
-- Google Colab compatible  
+### **1️⃣ Clone the Repository**
+```<language>
+git clone <your-repo-url>
+```
+### **2️⃣ Frontend Setup (Flutter)**
+```<language>
+cd frontend
+flutter pub get
+flutter run -d chrome
+```
+### **3️⃣Backend Setup (Spring Boot)**
+```<language>
+cd backend
+mvn clean install
+mvn spring-boot:run
+```
+## Backend starts at
+http://localhost:8080
 
 ---
+## 🔗 Live Demo & Code
 
-### 📊 Output
+- 🌐 **Web App:** [EcoBazaarX Web App](https://ecobazzarx.web.app)  
+- 🛠 **Backend API:** [EcoBazaarX Backend API](https://backend-springboot-ymgn.onrender.com)  
+---
 
-- Predicted future mandi price  
-- Model evaluation using Mean Squared Error (MSE)  
-- Graph comparing actual vs predicted prices  
+## 📄 License
+This project is licensed under the [MIT License](./LICENSE).
+
+

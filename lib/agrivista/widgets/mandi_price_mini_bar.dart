@@ -42,7 +42,7 @@ class MandiPriceMiniBar extends StatelessWidget {
                   children: [
                     Text(
                       summary.cropName,
-                      style: GoogleFonts.nunito(
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                         color: AppColors.textDark,
@@ -50,7 +50,7 @@ class MandiPriceMiniBar extends StatelessWidget {
                     ),
                     Text(
                       '${summary.mandiName} • ${summary.city}',
-                      style: GoogleFonts.nunito(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: AppColors.textLight,
                       ),
@@ -63,7 +63,7 @@ class MandiPriceMiniBar extends StatelessWidget {
                 children: [
                   Text(
                     '₹${summary.todayPrice.toStringAsFixed(0)}/q',
-                    style: GoogleFonts.nunito(
+                    style: GoogleFonts.poppins(
                       fontWeight: FontWeight.w800,
                       fontSize: 15,
                       color: AppColors.textDark,
@@ -82,7 +82,7 @@ class MandiPriceMiniBar extends StatelessWidget {
                       const SizedBox(width: 3),
                       Text(
                         '${summary.changePercent.abs().toStringAsFixed(1)}%',
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: summary.isUp

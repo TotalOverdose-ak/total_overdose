@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: ecobazaar-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SERVER_PORT
+        value: 10000
+      - key: FIREBASE_PROJECT_ID
+        value: ecobazzarx
+      - key: FIREBASE_CREDENTIALS_JSON
+        value: "YOUR_FIREBASE_SERVICE_ACCOUNT_JSON_HERE"
+      - key: JWT_SECRET
+        value: ecobazaarX2024SecretKeyForJWTTokenGenerationProduction
+      - key: DB_PASSWORD
+        value: ecobazaar2024
+      - key: CORS_ORIGINS
+        value: https://ecobazzarx.web.app/
+
+

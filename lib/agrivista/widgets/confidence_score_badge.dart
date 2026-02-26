@@ -34,7 +34,7 @@ class ConfidenceScoreBadge extends StatelessWidget {
       child: Center(
         child: Text(
           '$confidencePct%',
-          style: GoogleFonts.nunito(
+          style: GoogleFonts.poppins(
             fontSize: fontSize,
             fontWeight: FontWeight.w800,
             color: _color,

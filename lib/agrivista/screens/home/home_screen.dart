@@ -3,10 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/crop_model.dart';
 import '../../data/dummy_data.dart';
 import '../../theme/app_colors.dart';
+import 'package:provider/provider.dart';
+import '../../providers/weather_provider.dart';
 import '../../widgets/weather_strip.dart';
 import '../../widgets/motivational_quote_card.dart';
 import '../../widgets/floating_mic_button.dart';
 import '../result/result_screen.dart';
+import '../weather/weather_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     setState(() => _isLoading = true);
+    // Simulate AI processing delay
     await Future.delayed(const Duration(milliseconds: 1400));
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -82,11 +86,11 @@ class _HomeScreenState extends State<HomeScreen>
       SnackBar(
         content: Text(
           msg,
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: AppColors.lavender,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        backgroundColor: const Color(0xFF2E7D32),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -97,11 +101,11 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // ── Soft gradient background ─────────────────────────────────────────
+          // ── Gradient Background ──────────────────────────────────────────────
           Container(
             decoration: const BoxDecoration(gradient: AppColors.homeGradient),
           ),
-          // ── Decorative circles (soft lavender) ──────────────────────────────
+          // ── Decorative circles ───────────────────────────────────────────────
           Positioned(
             top: -60,
             right: -40,
@@ -110,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen>
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.lavender.withValues(alpha: 0.15),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -122,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen>
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.sunYellow.withValues(alpha: 0.12),
+                color: Colors.white.withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -142,8 +146,19 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const StaticWeatherStrip(),
+                            // Weather strip
+                            StaticWeatherStrip(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const WeatherScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                             const SizedBox(height: 16),
+                            // Crop selection
                             _SectionLabel(
                               label: 'Select Your Crop',
                               emoji: '🌾',
@@ -156,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   setState(() => _selectedCrop = c),
                             ),
                             const SizedBox(height: 18),
+                            // Location selection
                             _SectionLabel(
                               label: 'Select Location',
                               emoji: '📍',
@@ -164,15 +180,22 @@ class _HomeScreenState extends State<HomeScreen>
                             _LocationDropdown(
                               locations: DummyData.locations,
                               selected: _selectedLocation,
-                              onSelect: (l) =>
-                                  setState(() => _selectedLocation = l),
+                              onSelect: (l) {
+                                setState(() => _selectedLocation = l);
+                                // Update weather for the selected location
+                                context.read<WeatherProvider>().fetchWeather(
+                                  l.name,
+                                );
+                              },
                             ),
                             const SizedBox(height: 22),
+                            // CTA button
                             _GetRecommendationButton(
                               isLoading: _isLoading,
                               onTap: _getRecommendation,
                             ),
                             const SizedBox(height: 22),
+                            // Motivational quote
                             const MotivationalQuoteCard(),
                           ],
                         ),
@@ -204,16 +227,16 @@ class _HomeScreenState extends State<HomeScreen>
                 Text(
                   'Namaste 👋',
                   style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: AppColors.textLight,
+                    fontSize: 16,
+                    color: Colors.white.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
-                  'Krishi Mitra AI',
+                  'Welcome to Krishi Mitra AI',
                   style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    color: AppColors.textDark,
+                    fontSize: 22,
+                    color: Colors.white,
                     fontWeight: FontWeight.w700,
                     height: 1.2,
                   ),
@@ -223,19 +246,23 @@ class _HomeScreenState extends State<HomeScreen>
                   'Your AI-powered farming companion 🤖🌱',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: AppColors.textLight,
+                    color: Colors.white.withValues(alpha: 0.75),
                     fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
           ),
+          // App logo / avatar
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.lavenderLight,
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.lavender, width: 2),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.4),
+                width: 2,
+              ),
             ),
             child: const Text('🧑‍🌾', style: TextStyle(fontSize: 28)),
           ),
@@ -261,9 +288,9 @@ class _SectionLabel extends StatelessWidget {
         Text(
           label,
           style: GoogleFonts.poppins(
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppColors.textDark,
+            color: Colors.white,
           ),
         ),
       ],
@@ -271,8 +298,8 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ── Crop Grid ────────────────────────────────────────────────────────────────
-class _CropGrid extends StatelessWidget {
+// ── Crop Grid (Animated + See All) ───────────────────────────────────────────
+class _CropGrid extends StatefulWidget {
   final List<CropModel> crops;
   final CropModel? selected;
   final ValueChanged<CropModel> onSelect;
@@ -284,79 +311,254 @@ class _CropGrid extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: crops.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1.05,
-      ),
-      itemBuilder: (_, i) {
-        final crop = crops[i];
-        final isSelected = selected?.id == crop.id;
-        return GestureDetector(
-          onTap: () => onSelect(crop),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.lavenderLight
-                  : AppColors.cardWhite,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.lavender
-                    : AppColors.divider,
-                width: isSelected ? 2 : 1,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.lavender.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(crop.emoji, style: const TextStyle(fontSize: 28)),
-                const SizedBox(height: 4),
-                Text(
-                  crop.name,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? AppColors.textDark : AppColors.textMedium,
-                  ),
-                ),
-                Text(
-                  crop.nameSanskrit,
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    color: AppColors.textLight,
-                  ),
-                ),
-              ],
-            ),
-          ),
+  State<_CropGrid> createState() => _CropGridState();
+}
+
+class _CropGridState extends State<_CropGrid> with TickerProviderStateMixin {
+  static const int _initialCount = 6;
+  bool _showAll = false;
+
+  late AnimationController _entranceController;
+  int? _tappedIndex;
+  late AnimationController _bounceController;
+  late Animation<double> _bounceAnim;
+  late AnimationController _arrowController;
+  late Animation<double> _arrowRotation;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _entranceController.forward();
+
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _bounceAnim =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.92), weight: 30),
+          TweenSequenceItem(tween: Tween(begin: 0.92, end: 1.05), weight: 30),
+          TweenSequenceItem(tween: Tween(begin: 1.05, end: 1.0), weight: 40),
+        ]).animate(
+          CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
         );
-      },
+
+    _arrowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _arrowRotation = Tween<double>(begin: 0, end: 0.5).animate(
+      CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
     );
   }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    _bounceController.dispose();
+    _arrowController.dispose();
+    super.dispose();
+  }
+
+  void _handleTap(int index, CropModel crop) {
+    setState(() => _tappedIndex = index);
+    _bounceController.forward(from: 0).then((_) {
+      if (mounted) setState(() => _tappedIndex = null);
+    });
+    widget.onSelect(crop);
+  }
+
+  void _toggleShowAll() {
+    setState(() => _showAll = !_showAll);
+    if (_showAll) {
+      _arrowController.forward();
+      _entranceController.forward(from: 0);
+    } else {
+      _arrowController.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleCrops = _showAll
+        ? widget.crops
+        : widget.crops.take(_initialCount).toList();
+    final hasMore = widget.crops.length > _initialCount;
+
+    return Column(
+      children: [
+        // ── Crop Chips wrapped layout ──
+        AnimatedSize(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: List.generate(visibleCrops.length, (i) {
+              final crop = visibleCrops[i];
+              final isSelected = widget.selected?.id == crop.id;
+
+              // Staggered entrance
+              final delay = (i * 0.07).clamp(0.0, 1.0);
+              final end = (delay + 0.45).clamp(0.0, 1.0);
+              final entranceAnim = CurvedAnimation(
+                parent: _entranceController,
+                curve: Interval(delay, end, curve: Curves.easeOutBack),
+              );
+
+              return AnimatedBuilder(
+                listenable: Listenable.merge([entranceAnim, _bounceAnim]),
+                builder: (context, child) {
+                  final entranceScale = entranceAnim.value;
+                  final isTapped = _tappedIndex == i;
+                  final bounce = isTapped ? _bounceAnim.value : 1.0;
+                  final s = entranceScale * bounce;
+                  return Transform.scale(
+                    scale: s.clamp(0.0, 1.2),
+                    child: Opacity(
+                      opacity: entranceScale.clamp(0.0, 1.0),
+                      child: child,
+                    ),
+                  );
+                },
+                child: GestureDetector(
+                  onTap: () => _handleTap(i, crop),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(50),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.sunYellow
+                            : Colors.white.withValues(alpha: 0.35),
+                        width: isSelected ? 2.2 : 1,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.sunYellow.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 12,
+                                offset: const Offset(0, 3),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(crop.emoji, style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              crop.name,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? AppColors.textDark
+                                    : Colors.white,
+                              ),
+                            ),
+                            Text(
+                              crop.nameSanskrit,
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                height: 1.1,
+                                color: isSelected
+                                    ? AppColors.textLight
+                                    : Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        // ── See All / Show Less ──
+        if (hasMore)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: GestureDetector(
+              onTap: _toggleShowAll,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _showAll ? 'Show Less' : 'See All Crops',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    RotationTransition(
+                      turns: _arrowRotation,
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ── AnimatedBuilder helper ───────────────────────────────────────────────────
+class AnimatedBuilder extends AnimatedWidget {
+  final TransitionBuilder builder;
+  final Widget? child;
+
+  const AnimatedBuilder({
+    super.key,
+    required super.listenable,
+    required this.builder,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) => builder(context, child);
 }
 
 // ── Location Dropdown ─────────────────────────────────────────────────────────
@@ -376,40 +578,30 @@ class _LocationDropdown extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<LocationModel>(
           isExpanded: true,
-          dropdownColor: AppColors.cardWhite,
+          dropdownColor: const Color(0xFF2E7D32),
           value: selected,
           hint: Text(
             '🗺  Select your village / city',
             style: GoogleFonts.poppins(
-              color: AppColors.textLight,
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
-          icon: const Icon(
-            Icons.keyboard_arrow_down,
-            color: AppColors.lavender,
-          ),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
           items: locations.map((loc) {
             return DropdownMenuItem<LocationModel>(
               value: loc,
               child: Text(
                 '📍 ${loc.name}, ${loc.state}',
                 style: GoogleFonts.poppins(
-                  color: AppColors.textDark,
+                  color: Colors.white,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),
@@ -479,14 +671,14 @@ class _GetRecommendationButtonState extends State<_GetRecommendationButton>
           height: 58,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [AppColors.lavender, AppColors.lavenderDeep],
+              colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: AppColors.lavender.withValues(alpha: 0.4),
+                color: AppColors.sunYellow.withValues(alpha: 0.5),
                 blurRadius: 14,
                 offset: const Offset(0, 5),
               ),
@@ -509,7 +701,7 @@ class _GetRecommendationButtonState extends State<_GetRecommendationButton>
                       Text(
                         'Analysing with AI…',
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
+                          fontSize: 17,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -519,17 +711,13 @@ class _GetRecommendationButtonState extends State<_GetRecommendationButton>
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                        size: 22,
-                      ),
+                      Icon(Icons.auto_awesome, color: Colors.white, size: 22),
                       const SizedBox(width: 10),
                       Text(
                         'Get AI Recommendation',
                         style: GoogleFonts.poppins(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: 0.3,
                         ),

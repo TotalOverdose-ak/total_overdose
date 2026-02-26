@@ -26,7 +26,7 @@ class PreservationCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.07),
@@ -44,7 +44,7 @@ class PreservationCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.peachYellow,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+                top: Radius.circular(20),
               ),
             ),
             child: Row(
@@ -53,7 +53,7 @@ class PreservationCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   'Preservation Suggestions',
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: AppColors.warmOrange,
@@ -119,7 +119,7 @@ class _SuggestionTile extends StatelessWidget {
             child: Center(
               child: Text(
                 '#$rank',
-                style: GoogleFonts.nunito(
+                style: GoogleFonts.poppins(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: AppColors.warmOrange,
@@ -136,7 +136,7 @@ class _SuggestionTile extends StatelessWidget {
               children: [
                 Text(
                   suggestion.title,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                     color: AppColors.textDark,
@@ -144,7 +144,7 @@ class _SuggestionTile extends StatelessWidget {
                 ),
                 Text(
                   suggestion.description,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: AppColors.textLight,
                     height: 1.4,
@@ -165,7 +165,7 @@ class _SuggestionTile extends StatelessWidget {
                 ),
                 child: Text(
                   suggestion.costLabel,
-                  style: GoogleFonts.nunito(
+                  style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: costColor,

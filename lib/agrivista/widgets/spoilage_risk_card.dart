@@ -90,7 +90,7 @@ class _SpoilageRiskCardState extends State<SpoilageRiskCard>
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: _riskColor.withValues(alpha: 0.15),
@@ -109,9 +109,9 @@ class _SpoilageRiskCardState extends State<SpoilageRiskCard>
               const SizedBox(width: 8),
               Text(
                 'Spoilage Risk',
-                style: GoogleFonts.nunito(
+                style: GoogleFonts.poppins(
                   fontSize: 17,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textDark,
                 ),
               ),
@@ -143,9 +143,9 @@ class _SpoilageRiskCardState extends State<SpoilageRiskCard>
                           ),
                           Text(
                             '${(widget.riskScore * 100).toInt()}%',
-                            style: GoogleFonts.nunito(
+                            style: GoogleFonts.poppins(
                               fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: _riskColor,
                             ),
                           ),
@@ -172,9 +172,9 @@ class _SpoilageRiskCardState extends State<SpoilageRiskCard>
                       ),
                       child: Text(
                         _riskLabel,
-                        style: GoogleFonts.nunito(
+                        style: GoogleFonts.poppins(
                           color: _riskColor,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           fontSize: 15,
                         ),
                       ),
@@ -182,7 +182,7 @@ class _SpoilageRiskCardState extends State<SpoilageRiskCard>
                     const SizedBox(height: 8),
                     Text(
                       _riskAdvice,
-                      style: GoogleFonts.nunito(
+                      style: GoogleFonts.poppins(
                         color: AppColors.textMedium,
                         fontSize: 13,
                         height: 1.5,
@@ -245,8 +245,8 @@ class _RiskLevelDot extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.nunito(
-          fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+        style: GoogleFonts.poppins(
+          fontWeight: active ? FontWeight.w700 : FontWeight.w400,
           fontSize: 12,
           color: active ? color : AppColors.textLight,
         ),
