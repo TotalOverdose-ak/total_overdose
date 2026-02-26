@@ -12,3 +12,16 @@ It then provides:
 2. Market price prediction
 3. Suggested selling window
 4. Risk alerts (weather / price drop)
+
+FEATURES ADDED TILL NOW:
+## 🌦 Weather API Integration
+
+The project now integrates real-time weather data using the Open-Meteo API.
+
+### What was added:
+- Fetches live temperature, rainfall, and humidity data
+- Connects weather data to mandi price prediction input
+- Improves prediction accuracy by including environmental factors
+
+API Used:
+https://open-meteo.com/
