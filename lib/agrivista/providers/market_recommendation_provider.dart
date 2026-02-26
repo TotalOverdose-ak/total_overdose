@@ -207,37 +207,90 @@ Give a brief (under 80 words), practical recommendation explaining:
 
 Be direct, confident, and data-driven. No markdown. No bullets. Write as flowing text like a trusted advisor.''';
 
-      final url = '${AppConfig.geminiBaseUrl}?key=${AppConfig.geminiApiKey}';
-
       final response = await http
           .post(
-            Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
+            Uri.parse(AppConfig.geminiBaseUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${AppConfig.geminiApiKey}',
+            },
             body: jsonEncode({
-              'contents': [
-                {
-                  'parts': [
-                    {'text': prompt},
-                  ],
-                },
+              'model': AppConfig.geminiModel,
+              'messages': [
+                {'role': 'user', 'content': prompt},
               ],
-              'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 300},
+              'temperature': 0.7,
+              'max_tokens': 300,
             }),
           )
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final candidates = json['candidates'] as List<dynamic>?;
-        if (candidates != null && candidates.isNotEmpty) {
-          final content = candidates[0]['content'] as Map<String, dynamic>?;
-          final parts = content?['parts'] as List<dynamic>?;
-          final text = parts?[0]['text'] as String? ?? '';
+        final choices = json['choices'] as List<dynamic>?;
+        if (choices != null && choices.isNotEmpty) {
+          final message = choices[0]['message'] as Map<String, dynamic>?;
+          final text = message?['content'] as String? ?? '';
           if (text.trim().isNotEmpty) {
             _aiSummary = text.trim();
             notifyListeners();
             return;
           }
+        }
+      }
+
+
+
+
+              body: jsonEncode({
+                'messages': [
+                  {'role': 'user', 'content': prompt},
+                ],
+                'temperature': 0.7,
+                'max_tokens': 300,
+              }),
+            )
+            .timeout(const Duration(seconds: 30));
+      } else {
+        response = await http
+            .post(
+              Uri.parse(AppConfig.aiBaseUrl),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ${AppConfig.aiApiKey}',
+              },
+              body: jsonEncode({
+                'model': AppConfig.aiModel,
+                'messages': [
+                  {'role': 'user', 'content': prompt},
+                ],
+                'temperature': 0.7,
+                'max_tokens': 300,
+              }),
+            )
+            .timeout(const Duration(seconds: 30));
+      }
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        String text = '';
+
+        if (AppConfig.useProxyBackend) {
+          if (json['success'] == true) {
+            text = json['content'] as String? ?? '';
+          }
+        } else {
+          final choices = json['choices'] as List<dynamic>?;
+          if (choices != null && choices.isNotEmpty) {
+            final message = choices[0]['message'] as Map<String, dynamic>?;
+            text = message?['content'] as String? ?? '';
+          }
+        }
+
+        if (text.trim().isNotEmpty) {
+          _aiSummary = text.trim();
+          notifyListeners();
+          return;
         }
       }
 

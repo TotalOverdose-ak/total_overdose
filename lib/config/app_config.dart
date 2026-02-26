@@ -12,13 +12,19 @@ class AppConfig {
   static const String appName = 'EcoBazaarX';
   static const String appVersion = '1.0.0';
 
-  // ── Gemini AI Configuration ───────────────────────────────────────────────
-  // ⚠️ UPDATE THIS KEY if Gemini API stops working!
-  // Get a new key from: https://aistudio.google.com/apikey
-  static const String geminiApiKey = 'AIzaSyBgN4ijOo--Tquajvv1_D8A8ifi6U8Tw_4';
-  static const String geminiModel = 'gemini-2.0-flash';
+  // ── AI Configuration (Dual Fallback) ──────────────────────────────────────
+  // Primary: Gemini direct API (fast, but 15 RPM free tier limit)
+  // Fallback: Flask proxy → OpenRouter (when Gemini rate limited)
+
+  // Gemini direct config (PRIMARY)
+  static const String geminiApiKey = 'AIzaSyBLsfQrOLPY0wKMBSO9ePR9S8imrzXGq9k';
+  static const String geminiModel = 'gemini-1.5-flash';
   static const String geminiBaseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent';
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+
+  // Flask proxy config (FALLBACK — when Gemini rate limited)
+  // Android emulator: 10.0.2.2, Real device: use PC's IP
+  static const String proxyBaseUrl = 'http://10.0.2.2:5000/api/chat';
 
   // Logging levels
   static const bool logErrors = true;

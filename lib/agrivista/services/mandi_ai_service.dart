@@ -3,14 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
 
-/// AI Service for Mandi features using Google Gemini API.
-///
-/// Uses Gemini REST API (`generativelanguage.googleapis.com`) which supports
-/// browser CORS. Features: Translation, Smart Negotiation, Price insights, AI Chat.
+/// AI Service with dual fallback: Gemini direct + Flask/OpenRouter proxy.
 class MandiAIService {
-  // ── Gemini Configuration (from AppConfig) ──────────────────────────────
-  static String get _apiKey => AppConfig.geminiApiKey;
-  static String get _baseUrl => AppConfig.geminiBaseUrl;
+  // ── Configuration ─────────────────────────────────────────────────────
+  static String get _geminiKey => AppConfig.geminiApiKey;
+  static String get _geminiUrl => AppConfig.geminiBaseUrl;
+  static String get _geminiModel => AppConfig.geminiModel;
+  static String get _proxyUrl => AppConfig.proxyBaseUrl;
 
   /// System instruction for the AI assistant.
   static const String _systemInstruction =
@@ -34,208 +33,121 @@ class MandiAIService {
     'English': 'English',
   };
 
-  // ── Core Gemini Call (with retry) ────────────────────────────────────────
+  // ── Core AI Call (Dual Fallback) ──────────────────────────────────────
   static Future<String> _generate(
     String prompt, {
     int retries = 2,
     String? systemPrompt,
   }) async {
-    final fullPrompt = systemPrompt != null
-        ? '$systemPrompt\n\n$prompt'
-        : prompt;
-    return _callGemini(fullPrompt, retries: retries);
-  }
-
-  /// Makes the actual Gemini REST API call with retry logic.
-  static Future<String> _callGemini(String prompt, {int retries = 3}) async {
-    Exception? lastError;
-
-    for (int attempt = 0; attempt <= retries; attempt++) {
-      try {
-        if (attempt > 0) {
-          // Longer backoff for rate-limit errors (429)
-          final isRateLimit =
-              lastError.toString().contains('429') ||
-              lastError.toString().contains('RESOURCE_EXHAUSTED');
-          final delay = isRateLimit
-              ? Duration(seconds: 3 * attempt) // 3s, 6s, 9s for rate limits
-              : Duration(milliseconds: 1000 * attempt); // 1s, 2s for others
-          debugPrint(
-            'MandiAIService: Retry attempt $attempt (waiting ${delay.inMilliseconds}ms)',
-          );
-          await Future.delayed(delay);
-        }
-
-        final url = '$_baseUrl?key=$_apiKey';
-
-        final response = await http
-            .post(
-              Uri.parse(url),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({
-                'contents': [
-                  {
-                    'parts': [
-                      {'text': prompt},
-                    ],
-                  },
-                ],
-                'generationConfig': {
-                  'temperature': 0.7,
-                  'maxOutputTokens': 512,
-                },
-              }),
-            )
-            .timeout(const Duration(seconds: 30));
-
-        // Gemini returns 429 OR 403+RESOURCE_EXHAUSTED for rate limits
-        if (response.statusCode == 429 ||
-            (response.statusCode == 403 &&
-                response.body.contains('RESOURCE_EXHAUSTED'))) {
-          debugPrint(
-            'Gemini rate limited (${response.statusCode}) — will retry after backoff',
-          );
-          throw Exception('429: Rate limited - RESOURCE_EXHAUSTED');
-        }
-
-        if (response.statusCode != 200) {
-          debugPrint('Gemini error: ${response.statusCode} ${response.body}');
-          throw Exception(
-            'Gemini API error ${response.statusCode}: ${response.body}',
-          );
-        }
-
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final candidates = json['candidates'] as List<dynamic>?;
-        if (candidates == null || candidates.isEmpty) {
-          throw Exception('No response from Gemini');
-        }
-
-        final content = candidates[0]['content'] as Map<String, dynamic>?;
-        final parts = content?['parts'] as List<dynamic>?;
-        if (parts == null || parts.isEmpty) {
-          throw Exception('Empty response from Gemini');
-        }
-
-        final text = parts[0]['text'] as String? ?? '';
-        if (text.trim().isEmpty) {
-          throw Exception('Empty text from Gemini');
-        }
-        return text.trim();
-      } catch (e) {
-        debugPrint('MandiAIService._callGemini error (attempt $attempt): $e');
-        lastError = e is Exception ? e : Exception(e.toString());
-      }
+    final messages = <Map<String, String>>[];
+    if (systemPrompt != null) {
+      messages.add({'role': 'system', 'content': systemPrompt});
     }
-
-    throw lastError ?? Exception('Failed after $retries retries');
+    messages.add({'role': 'user', 'content': prompt});
+    return _callAI(messages, retries: retries);
   }
 
-  /// Multi-turn Gemini call: accepts a list of role/content pairs.
-  static Future<String> _callGeminiMultiTurn(
+  /// Dual fallback: Gemini first, Flask proxy on rate limit.
+  static Future<String> _callAI(
     List<Map<String, String>> messages, {
-    int retries = 2,
+    int retries = 3,
   }) async {
-    // Build Gemini contents array from messages
-    // Gemini uses 'user' and 'model' roles (not 'assistant')
-    final contents = <Map<String, dynamic>>[];
-    String systemText = '';
-
-    for (final msg in messages) {
-      final role = msg['role'] ?? 'user';
-      final text = msg['content'] ?? '';
-      if (role == 'system') {
-        systemText += '$text\n';
-        continue;
-      }
-      final geminiRole = (role == 'assistant') ? 'model' : 'user';
-      contents.add({
-        'role': geminiRole,
-        'parts': [
-          {
-            'text': role == 'user' && systemText.isNotEmpty && contents.isEmpty
-                ? '$systemText\n$text'
-                : text,
-          },
-        ],
-      });
-    }
-
-    // If only system message and no user message, send as single prompt
-    if (contents.isEmpty && systemText.isNotEmpty) {
-      return _callGemini(systemText, retries: retries);
-    }
-
-    // Ensure first message is from 'user' (Gemini requirement)
-    if (contents.isNotEmpty && contents[0]['role'] != 'user') {
-      contents.insert(0, {
-        'role': 'user',
-        'parts': [
-          {'text': systemText.isNotEmpty ? systemText : 'Hello'},
-        ],
-      });
-    }
-
-    Exception? lastError;
+    // Try Gemini direct
     for (int attempt = 0; attempt <= retries; attempt++) {
       try {
         if (attempt > 0) {
-          final isRateLimit =
-              lastError.toString().contains('429') ||
-              lastError.toString().contains('RESOURCE_EXHAUSTED');
-          final delay = isRateLimit
-              ? Duration(seconds: 3 * attempt)
-              : Duration(milliseconds: 1000 * attempt);
-          await Future.delayed(delay);
+          await Future.delayed(Duration(seconds: 3 * attempt));
+          debugPrint('MandiAIService: Gemini retry $attempt');
         }
-
-        final url = '$_baseUrl?key=$_apiKey';
-        final response = await http
-            .post(
-              Uri.parse(url),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({
-                'contents': contents,
-                'generationConfig': {
-                  'temperature': 0.7,
-                  'maxOutputTokens': 512,
-                },
-              }),
-            )
-            .timeout(const Duration(seconds: 30));
-
-        // Gemini returns 429 OR 403+RESOURCE_EXHAUSTED for rate limits
-        if (response.statusCode == 429 ||
-            (response.statusCode == 403 &&
-                response.body.contains('RESOURCE_EXHAUSTED'))) {
-          debugPrint(
-            'Gemini rate limited (${response.statusCode}) — will retry after backoff',
-          );
-          throw Exception('429: Rate limited - RESOURCE_EXHAUSTED');
-        }
-
-        if (response.statusCode != 200) {
-          throw Exception(
-            'Gemini API error ${response.statusCode}: ${response.body}',
-          );
-        }
-
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final candidates = json['candidates'] as List<dynamic>?;
-        if (candidates == null || candidates.isEmpty) {
-          throw Exception('No response from Gemini');
-        }
-
-        final content = candidates[0]['content'] as Map<String, dynamic>?;
-        final parts = content?['parts'] as List<dynamic>?;
-        final text = parts?[0]['text'] as String? ?? '';
-        if (text.trim().isEmpty) throw Exception('Empty response');
-        return text.trim();
+        return await _callGeminiDirect(messages);
       } catch (e) {
-        lastError = e is Exception ? e : Exception(e.toString());
+        final isRateLimit =
+            e.toString().contains('429') ||
+            e.toString().contains('RESOURCE_EXHAUSTED');
+        debugPrint('Gemini attempt $attempt failed: $e');
+        if (isRateLimit) {
+          debugPrint('Rate limited -> trying Flask proxy...');
+          break;
+        }
       }
     }
-    throw lastError ?? Exception('Failed after $retries retries');
+    // Fallback to Flask proxy
+    try {
+      return await _callFlaskProxy(messages);
+    } catch (proxyError) {
+      debugPrint('Flask proxy failed: $proxyError');
+    }
+    // Last resort: wait then retry Gemini
+    await Future.delayed(const Duration(seconds: 8));
+    try {
+      return await _callGeminiDirect(messages);
+    } catch (_) {}
+    throw Exception('AI unavailable. Please wait 30 seconds and try again.');
+  }
+
+  /// Call Gemini directly (OpenAI-compatible endpoint).
+  static Future<String> _callGeminiDirect(
+    List<Map<String, String>> messages,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse(_geminiUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_geminiKey',
+          },
+          body: jsonEncode({
+            'model': _geminiModel,
+            'messages': messages,
+            'temperature': 0.7,
+            'max_tokens': 512,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 429 ||
+        (response.statusCode == 403 &&
+            response.body.contains('RESOURCE_EXHAUSTED'))) {
+      throw Exception('429: Gemini rate limited');
+    }
+    if (response.statusCode != 200) {
+      throw Exception('Gemini ${response.statusCode}: ${response.body}');
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final choices = json['choices'] as List<dynamic>?;
+    if (choices == null || choices.isEmpty) throw Exception('No AI response');
+    final msg = choices[0]['message'] as Map<String, dynamic>?;
+    final text = msg?['content'] as String? ?? '';
+    if (text.trim().isEmpty) throw Exception('Empty AI response');
+    return text.trim();
+  }
+
+  /// Call Flask proxy backend (routes to OpenRouter).
+  static Future<String> _callFlaskProxy(
+    List<Map<String, String>> messages,
+  ) async {
+    final response = await http
+        .post(
+          Uri.parse(_proxyUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'messages': messages,
+            'temperature': 0.7,
+            'max_tokens': 512,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode != 200) {
+      throw Exception('Proxy ${response.statusCode}: ${response.body}');
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    if (json['success'] == true) {
+      final text = json['content'] as String? ?? '';
+      if (text.trim().isEmpty) throw Exception('Empty proxy response');
+      return text.trim();
+    }
+    throw Exception(json['error'] ?? 'Proxy error');
   }
 
   // ── Translation ──────────────────────────────────────────────────────────
@@ -469,7 +381,7 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
         'MandiAIService.chat: Sending ${messages.length} messages to Gemini',
       );
 
-      final result = await _callGeminiMultiTurn(messages, retries: 3);
+      final result = await _callAI(messages, retries: 3);
       return result;
     } catch (e) {
       debugPrint('MandiAIService.chat error: $e');
