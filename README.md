@@ -59,6 +59,11 @@ The system uses a **1D Convolutional Neural Network (1D CNN)** for time-based tr
 
 ---
 
+### 🏗 Model Architecture Diagram
+
+![Mandi Price Forecasting Model Architecture](ModelTrained.png)
+
+
 ### ⚙️ Technical Implementation
 
 - Python  
