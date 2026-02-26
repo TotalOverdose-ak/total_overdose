@@ -603,7 +603,7 @@ class _AdminEcoChallengesScreenState extends State<AdminEcoChallengesScreen>
               ),
             )
           else
-            ..._allChallenges.map((challenge) => _buildDetailedChallengeCard(challenge)),
+            ..._allChallenges.map((challenge) => _buildDetailedChallengeCard(challenge)).toList(),
         ],
       ),
     );
@@ -1038,7 +1038,7 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _selectedCategory,
+                              initialValue: _selectedCategory,
                               decoration: InputDecoration(
                                 labelText: 'Category',
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -1060,7 +1060,7 @@ class _CreateChallengeDialogState extends State<CreateChallengeDialog> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _selectedDifficulty,
+                              initialValue: _selectedDifficulty,
                               decoration: InputDecoration(
                                 labelText: 'Difficulty',
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -1542,7 +1542,7 @@ class _EditChallengeDialogState extends State<EditChallengeDialog> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           items: items.map((item) => DropdownMenuItem(
             value: item,
             child: Text(item),

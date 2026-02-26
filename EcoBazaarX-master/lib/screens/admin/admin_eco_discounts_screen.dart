@@ -745,7 +745,7 @@ class _CreateDiscountDialogState extends State<CreateDiscountDialog> {
   final _validDaysController = TextEditingController();
   
   String _discountType = 'percentage';
-  final List<String> _selectedCategories = ['All'];
+  List<String> _selectedCategories = ['All'];
   bool _isLoading = false;
 
   final List<String> _categories = [
@@ -857,7 +857,7 @@ class _CreateDiscountDialogState extends State<CreateDiscountDialog> {
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: _discountType,
+                                initialValue: _discountType,
                                 decoration: InputDecoration(
                                   labelText: 'Discount Type',
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

@@ -41,7 +41,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   bool _hasApiError = false;
   
   // User cache for displaying real names instead of IDs
-  final Map<int, Map<String, dynamic>> _userCache = {};
+  Map<int, Map<String, dynamic>> _userCache = {};
   
   // Real-time data variables
   Timer? _realTimeTimer;
@@ -8081,7 +8081,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ],
             ),
           ),
-        )),
+        )).toList(),
       ],
     );
   }
@@ -8366,7 +8366,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             ),
                             trailing: const Icon(Icons.favorite, color: Color(0xFFE91E63), size: 20),
                           ),
-                        )),
+                        )).toList(),
                       ],
                     ),
                   ),
@@ -9342,7 +9342,7 @@ Widget _buildAddProductForm() {
               color: Colors.white,
             ),
             child: DropdownButtonFormField<String>(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               decoration: const InputDecoration(border: InputBorder.none),
               items: Provider.of<ProductProvider>(context, listen: false).availableCategories.map((category) {
                 return DropdownMenuItem(value: category, child: Text(category));
@@ -9440,7 +9440,7 @@ Widget _buildAddProductForm() {
               color: Colors.white,
             ),
             child: DropdownButtonFormField<String>(
-              value: selectedMaterial,
+              initialValue: selectedMaterial,
               decoration: const InputDecoration(border: InputBorder.none),
               items: Provider.of<ProductProvider>(context, listen: false).availableMaterials.map((material) {
                 return DropdownMenuItem(value: material, child: Text(material));
@@ -10077,7 +10077,7 @@ Widget _buildEditProductForm(
               }
               
               return DropdownButtonFormField<String>(
-                value: storeNames.contains(selectedStore) ? selectedStore : (storeNames.isNotEmpty ? storeNames.first : null),
+                initialValue: storeNames.contains(selectedStore) ? selectedStore : (storeNames.isNotEmpty ? storeNames.first : null),
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

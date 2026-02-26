@@ -3,6 +3,7 @@ class AppConfig {
   static const bool isDebugMode = false; // Set to false for production
   static const bool enableDetailedLogging = false; // Set to false to reduce console noise
   static const bool enableNetworkLogging = false; // Set to false to reduce API call logs
+  static const bool designDemoMode = true; // Set true to run app without backend dependencies
   
   // API configuration
   static const String appName = 'EcoBazaarX';

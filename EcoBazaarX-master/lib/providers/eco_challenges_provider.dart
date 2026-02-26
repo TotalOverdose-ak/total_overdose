@@ -185,7 +185,7 @@ class EcoChallengesProvider extends ChangeNotifier {
           .where((uc) => uc.status == 'COMPLETED')
           .fold(0, (sum, uc) => sum + uc.pointsEarned.toInt());
       
-      print('✅ Loaded ${userChallenges.length} user challenges, $_totalEcoPoints points');
+      print('✅ Loaded ${userChallenges.length} user challenges, ${_totalEcoPoints} points');
       notifyListeners();
     } catch (e) {
       print('❌ Error loading user progress: $e');

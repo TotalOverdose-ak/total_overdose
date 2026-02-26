@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_config.dart';
 import '../providers/product_provider.dart';
 import '../providers/store_provider.dart';
 import '../screens/auth/login_screen.dart';
@@ -23,25 +24,35 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initializeApp() async {
     if (_initialized) return;
-    
+
+    if (AppConfig.designDemoMode) {
+      if (mounted) {
+        _initialized = true;
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
     try {
       print('AppInitializer: Starting app initialization...');
-      
+
       // Use post-frame callback to avoid setState during build
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         // Get providers without triggering rebuilds
         final productProvider = context.read<ProductProvider>();
         final storeProvider = context.read<StoreProvider>();
-        
+
         // Initialize providers that don't require authentication
         print('AppInitializer: Initializing ProductProvider...');
         await productProvider.initializeProducts();
-        
+
         print('AppInitializer: Initializing StoreProvider...');
         await storeProvider.initializeStores();
-        
+
         print('AppInitializer: App initialization completed successfully');
-        
+
         if (mounted) {
           _initialized = true;
           setState(() {
@@ -85,7 +96,9 @@ class _AppInitializerState extends State<AppInitializer> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2196F3)),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF2196F3),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -99,10 +112,7 @@ class _AppInitializerState extends State<AppInitializer> {
                     const SizedBox(height: 8),
                     Text(
                       'Initializing app...',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -112,7 +122,7 @@ class _AppInitializerState extends State<AppInitializer> {
         ),
       );
     }
-    
+
     // Once initialized, show the login screen
     return const LoginScreen();
   }

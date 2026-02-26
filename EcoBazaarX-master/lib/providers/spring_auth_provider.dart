@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 import '../services/api_service.dart';
 
 enum UserRole { customer, shopkeeper, admin }
@@ -25,9 +26,11 @@ class SpringAuthProvider extends ChangeNotifier {
   String? get userId => _userId;
   String? get jwtToken => _jwtToken;
   String? get refreshToken => _refreshToken;
-  
+
   // Getter for all users (for admin access)
   static List<Map<String, dynamic>> get allUsers => _allUsers;
+
+  bool get _isDesignDemoMode => AppConfig.designDemoMode;
 
   SpringAuthProvider() {
     _checkAuthStatus();
@@ -50,8 +53,8 @@ class SpringAuthProvider extends ChangeNotifier {
       );
     }
 
-    // Validate token if exists
-    if (_jwtToken != null && _isAuthenticated) {
+    // Validate token if exists (skip validation for design demo mode)
+    if (!_isDesignDemoMode && _jwtToken != null && _isAuthenticated) {
       await _validateToken();
     }
 
@@ -60,7 +63,10 @@ class SpringAuthProvider extends ChangeNotifier {
 
   Future<void> _validateToken() async {
     try {
-      final result = await ApiService.post('/auth/validate', authToken: _jwtToken);
+      final result = await ApiService.post(
+        '/auth/validate',
+        authToken: _jwtToken,
+      );
       if (result['valid'] == true) {
         _isAuthenticated = true;
         _userId = result['userId'];
@@ -75,9 +81,40 @@ class SpringAuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> login(String email, String password, UserRole role) async {
+  Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+    UserRole role,
+  ) async {
+    if (_isDesignDemoMode) {
+      _jwtToken = 'demo-token';
+      _refreshToken = 'demo-refresh-token';
+      _userId = 'demo-${role.name}';
+      _userEmail = email;
+      _userName = email.split('@')[0];
+      _userRole = role;
+      _isAuthenticated = true;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isAuthenticated', true);
+      await prefs.setString('userEmail', email);
+      await prefs.setString('userName', _userName!);
+      await prefs.setString('userRole', _userRole.toString());
+      await prefs.setString('userId', _userId!);
+      await prefs.setString('jwtToken', _jwtToken!);
+      await prefs.setString('refreshToken', _refreshToken!);
+
+      notifyListeners();
+
+      return {'success': true, 'message': 'Design demo login successful!'};
+    }
+
     try {
-      final result = await ApiService.authenticate(email, password, _userRoleToString(role));
+      final result = await ApiService.authenticate(
+        email,
+        password,
+        _userRoleToString(role),
+      );
 
       if (result['success'] == true) {
         _jwtToken = result['token'];
@@ -100,10 +137,7 @@ class SpringAuthProvider extends ChangeNotifier {
 
         notifyListeners();
 
-        return {
-          'success': true,
-          'message': 'Login successful!',
-        };
+        return {'success': true, 'message': 'Login successful!'};
       } else {
         return {
           'success': false,
@@ -125,20 +159,44 @@ class SpringAuthProvider extends ChangeNotifier {
     String confirmPassword,
     UserRole role,
   ) async {
-    try {
-      // Validate input
+    if (_isDesignDemoMode) {
       if (name.isEmpty || email.isEmpty || password.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Please fill in all fields.',
-        };
+        return {'success': false, 'message': 'Please fill in all fields.'};
       }
 
       if (password != confirmPassword) {
-        return {
-          'success': false,
-          'message': 'Passwords do not match.',
-        };
+        return {'success': false, 'message': 'Passwords do not match.'};
+      }
+
+      _userId = 'demo-signup-${DateTime.now().millisecondsSinceEpoch}';
+      _userEmail = email;
+      _userName = name;
+      _userRole = role;
+      _isAuthenticated = false;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isAuthenticated', false);
+      await prefs.setString('userEmail', email);
+      await prefs.setString('userName', name);
+      await prefs.setString('userRole', role.toString());
+      await prefs.setString('userId', _userId!);
+
+      notifyListeners();
+
+      return {
+        'success': true,
+        'message': 'Design demo signup successful! Please login to continue.',
+      };
+    }
+
+    try {
+      // Validate input
+      if (name.isEmpty || email.isEmpty || password.isEmpty) {
+        return {'success': false, 'message': 'Please fill in all fields.'};
+      }
+
+      if (password != confirmPassword) {
+        return {'success': false, 'message': 'Passwords do not match.'};
       }
 
       if (password.length < 8) {
@@ -172,7 +230,7 @@ class SpringAuthProvider extends ChangeNotifier {
         await prefs.setString('userId', _userId!);
 
         notifyListeners();
-        
+
         return {
           'success': true,
           'message': 'Registration successful! Please login to continue.',
@@ -192,12 +250,14 @@ class SpringAuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    try {
-      if (_jwtToken != null) {
-        await ApiService.post('/auth/logout', authToken: _jwtToken);
+    if (!_isDesignDemoMode) {
+      try {
+        if (_jwtToken != null) {
+          await ApiService.post('/auth/logout', authToken: _jwtToken);
+        }
+      } catch (e) {
+        print('Logout API call failed: $e');
       }
-    } catch (e) {
-      print('Logout API call failed: $e');
     }
 
     // Clear local data
@@ -223,11 +283,18 @@ class SpringAuthProvider extends ChangeNotifier {
   }
 
   Future<bool> refreshAuthToken() async {
+    if (_isDesignDemoMode) {
+      return true;
+    }
+
     try {
       if (_refreshToken == null) return false;
 
-      final result = await ApiService.post('/auth/refresh', authToken: _refreshToken);
-      
+      final result = await ApiService.post(
+        '/auth/refresh',
+        authToken: _refreshToken,
+      );
+
       if (result['success'] == true) {
         _jwtToken = result['token'];
         _refreshToken = result['refreshToken'];
@@ -288,28 +355,34 @@ class SpringAuthProvider extends ChangeNotifier {
     required String phone,
     required String address,
   }) async {
+    if (_isDesignDemoMode) {
+      _userName = name;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userName', name);
+      await prefs.setString('userPhone', phone);
+      await prefs.setString('userAddress', address);
+
+      notifyListeners();
+
+      return {'success': true, 'message': 'Profile updated successfully!'};
+    }
+
     try {
       if (!_isAuthenticated || _jwtToken == null) {
-        return {
-          'success': false,
-          'message': 'User not authenticated',
-        };
+        return {'success': false, 'message': 'User not authenticated'};
       }
 
       final result = await ApiService.put(
         '/auth/profile',
-        body: {
-          'name': name,
-          'phone': phone,
-          'address': address,
-        },
+        body: {'name': name, 'phone': phone, 'address': address},
         authToken: _jwtToken,
       );
 
       if (result['success'] == true) {
         // Update local data
         _userName = name;
-        
+
         // Save to local storage
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('userName', name);
@@ -317,11 +390,8 @@ class SpringAuthProvider extends ChangeNotifier {
         await prefs.setString('userAddress', address);
 
         notifyListeners();
-        
-        return {
-          'success': true,
-          'message': 'Profile updated successfully!',
-        };
+
+        return {'success': true, 'message': 'Profile updated successfully!'};
       } else {
         return {
           'success': false,
@@ -338,12 +408,20 @@ class SpringAuthProvider extends ChangeNotifier {
 
   // Method to request password reset
   Future<Map<String, dynamic>> resetPassword(String email) async {
+    if (_isDesignDemoMode) {
+      if (email.isEmpty) {
+        return {'success': false, 'message': 'Email is required'};
+      }
+
+      return {
+        'success': true,
+        'message': 'Design demo: reset link simulated for $email',
+      };
+    }
+
     try {
       if (email.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Email is required',
-        };
+        return {'success': false, 'message': 'Email is required'};
       }
 
       final result = await ApiService.resetPassword(email.trim());
