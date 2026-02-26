@@ -7,13 +7,6 @@ Users can explore products, view their carbon footprint score, track eco-impact 
 
 The project includes a complete e-commerce workflow with authentication, role-based access, dashboards, and eco-insight visualizations, built using scalable and modern technologies.
 
----
-## 👥 Contributors
-
-| Role        | Name | GitHub |
-|-------------|------|--------|
-| 🛠️ Owner | <img src="https://github.com/AkashKeote.png" width="60"/> | [Akash Keote](https://github.com/AkashKeote) |
-| 👤 Contributor | <img src="https://github.com/chaitanya-aaa.png" width="60"/> | [Chaitanya Barappadi](https://github.com/chaitanya-aaa) |
 
 ---
 ## 💻 Source Code
