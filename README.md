@@ -80,4 +80,62 @@ The system uses a **1D Convolutional Neural Network (1D CNN)** for time-based tr
 
 - Predicted future mandi price  
 - Model evaluation using Mean Squared Error (MSE)  
-- Graph comparing actual vs predicted prices  
+- Graph comparing actual vs predicted prices
+
+# 🌾 Agrivista – AI Powered Agricultural Market Intelligence
+
+Agrivista is an AI-driven agricultural decision support platform that helps farmers make smarter selling, storage, and bargaining decisions using real-time mandi data, weather intelligence, and explainable AI insights.
+
+---
+
+## 🚀 Features
+
+### 📊 Live Mandi Intelligence
+- Real-time Agmarknet prices (Min, Max, Modal)
+- Filter by state, commodity, and market
+- Data-driven insights for better selling decisions
+
+### 🤖 AI Market Chat (Explainable AI)
+- Powered by Google Gemini 2.0 Flash
+- Answers:
+  - When to sell?
+  - Where to sell?
+  - Storage tips?
+- Provides reasoning behind recommendations
+- Multi-language conversational interface
+
+### 💹 Smart Bargain Assistant
+- Compares vendor price with mandi modal price
+- Calculates exact markup %
+- Suggests counter-offers with ready-to-use phrases
+- Verdict:
+  - Fair
+  - Overpriced
+  - Very Overpriced
+
+### 🏭 Smart Godown (Storage Risk Advisor)
+- Weather-based spoilage risk detection (Low / Medium / High)
+- Ideal storage temperature & humidity guidance
+- Shelf-life estimation
+- Suggests cost-effective preservation actions
+- Mentions relevant government schemes
+
+### 🌤 Weather Integration
+- Real-time temperature & humidity
+- Direct integration into storage risk calculation
+
+---
+
+## 📈 How It Works
+
+1. Fetch real-time mandi prices.
+2. Integrate live weather data.
+3. Run ML model for price prediction.
+4. Generate explainable AI recommendations.
+5. Assist farmers in selling, bargaining, and storage planning.
+
+---
+
+## 🎯 Vision
+
+To reduce farmer losses caused by poor timing, market mismatch, and storage risks by delivering intelligent, real-time, and explainable agricultural insights.
