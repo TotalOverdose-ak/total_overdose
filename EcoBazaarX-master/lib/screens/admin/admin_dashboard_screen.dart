@@ -41,7 +41,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   bool _hasApiError = false;
   
   // User cache for displaying real names instead of IDs
-  Map<int, Map<String, dynamic>> _userCache = {};
+  final Map<int, Map<String, dynamic>> _userCache = {};
   
   // Real-time data variables
   Timer? _realTimeTimer;
@@ -8081,7 +8081,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ],
             ),
           ),
-        )).toList(),
+        )),
       ],
     );
   }
@@ -8366,7 +8366,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             ),
                             trailing: const Icon(Icons.favorite, color: Color(0xFFE91E63), size: 20),
                           ),
-                        )).toList(),
+                        )),
                       ],
                     ),
                   ),

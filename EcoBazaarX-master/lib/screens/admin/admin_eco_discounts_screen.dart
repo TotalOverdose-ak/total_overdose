@@ -745,7 +745,7 @@ class _CreateDiscountDialogState extends State<CreateDiscountDialog> {
   final _validDaysController = TextEditingController();
   
   String _discountType = 'percentage';
-  List<String> _selectedCategories = ['All'];
+  final List<String> _selectedCategories = ['All'];
   bool _isLoading = false;
 
   final List<String> _categories = [

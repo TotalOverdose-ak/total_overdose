@@ -185,7 +185,7 @@ class EcoChallengesProvider extends ChangeNotifier {
           .where((uc) => uc.status == 'COMPLETED')
           .fold(0, (sum, uc) => sum + uc.pointsEarned.toInt());
       
-      print('✅ Loaded ${userChallenges.length} user challenges, ${_totalEcoPoints} points');
+      print('✅ Loaded ${userChallenges.length} user challenges, $_totalEcoPoints points');
       notifyListeners();
     } catch (e) {
       print('❌ Error loading user progress: $e');
@@ -457,11 +457,11 @@ class EcoChallengesProvider extends ChangeNotifier {
         progressValue: progress,
       );
       
-      if (result != null && result['success']) {
+      if (result['success']) {
         await loadUserProgress(userId);
         return true;
       } else {
-        _setError(result != null ? result['message'] : 'Failed to update progress');
+        _setError(result['message']);
         return false;
       }
     } catch (e) {

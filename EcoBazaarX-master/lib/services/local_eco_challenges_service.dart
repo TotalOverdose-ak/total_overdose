@@ -6,7 +6,7 @@ class LocalEcoChallengesService {
   static const String _userChallengesKey = 'local_user_challenges';
   
   // Sample data for initialization
-  static List<Map<String, dynamic>> _sampleChallenges = [
+  static final List<Map<String, dynamic>> _sampleChallenges = [
     {
       'id': '1',
       'title': '30-Day Plastic Free Challenge',

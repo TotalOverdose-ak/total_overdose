@@ -180,7 +180,7 @@ class CartService {
       
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
-        print('Cart: Get cart summary success - ${result}');
+        print('Cart: Get cart summary success - $result');
         return result;
       } else {
         print('Cart: Get cart summary failed - ${response.statusCode}: ${response.body}');

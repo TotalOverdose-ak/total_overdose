@@ -603,7 +603,7 @@ class _AdminEcoChallengesScreenState extends State<AdminEcoChallengesScreen>
               ),
             )
           else
-            ..._allChallenges.map((challenge) => _buildDetailedChallengeCard(challenge)).toList(),
+            ..._allChallenges.map((challenge) => _buildDetailedChallengeCard(challenge)),
         ],
       ),
     );

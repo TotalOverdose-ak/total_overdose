@@ -2,6 +2,7 @@
 /// 
 /// This file contains all backend API endpoint configurations
 /// Update BASE_URL for production deployment
+library;
 
 class ApiConfig {
   // ============================================================
