@@ -25,3 +25,53 @@ The project now integrates real-time weather data using the Open-Meteo API.
 
 API Used:
 https://open-meteo.com/
+
+
+## 🌾 Mandi Price Forecasting Feature
+
+### 📌 Mandi Price Prediction Module
+
+This project includes a **time-series based Mandi Price Forecasting system** that predicts future commodity prices using deep learning models.
+
+---
+
+### 🔹 Key Functionalities
+
+- 📂 Upload historical mandi price dataset (CSV format)
+- 📊 Automatic preprocessing and normalization of price data
+- 📈 Integrated mandi price calculation (average across multiple mandis per date)
+- 🔄 Time-series sequence generation for model training
+- 🤖 1D CNN / LSTM based model for price prediction
+- 📉 Visualization of Actual vs Predicted Prices
+- 🔮 Next-day / multi-day price forecasting
+
+---
+
+### 🧠 Model Used
+
+The system uses a **1D Convolutional Neural Network (1D CNN)** for time-based training.
+
+- Detects short-term price trends  
+- Fast training (within 10 minutes)  
+- Suitable for large historical datasets  
+
+> ⚡ The model can be extended to LSTM or CNN + LSTM hybrid architecture for improved forecasting accuracy.
+
+---
+
+### ⚙️ Technical Implementation
+
+- Python  
+- TensorFlow / Keras  
+- Pandas & NumPy  
+- Scikit-learn (MinMaxScaler)  
+- Matplotlib for visualization  
+- Google Colab compatible  
+
+---
+
+### 📊 Output
+
+- Predicted future mandi price  
+- Model evaluation using Mean Squared Error (MSE)  
+- Graph comparing actual vs predicted prices  
