@@ -18,6 +18,29 @@ class HistoryEntry {
     required this.confidencePct,
     required this.date,
   });
+
+  // ── JSON serialization for SharedPreferences persistence ────────────
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'cropName': cropName,
+    'cropEmoji': cropEmoji,
+    'location': location,
+    'harvestWindow': harvestWindow,
+    'pricePerQuintal': pricePerQuintal,
+    'confidencePct': confidencePct,
+    'date': date.toIso8601String(),
+  };
+
+  factory HistoryEntry.fromJson(Map<String, dynamic> json) => HistoryEntry(
+    id: json['id'] as String? ?? '',
+    cropName: json['cropName'] as String? ?? '',
+    cropEmoji: json['cropEmoji'] as String? ?? '🌾',
+    location: json['location'] as String? ?? '',
+    harvestWindow: json['harvestWindow'] as String? ?? '',
+    pricePerQuintal: (json['pricePerQuintal'] as num?)?.toDouble() ?? 0,
+    confidencePct: (json['confidencePct'] as num?)?.toInt() ?? 0,
+    date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
+  );
 }
 
 class MandiPriceSummary {

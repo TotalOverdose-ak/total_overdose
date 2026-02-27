@@ -239,58 +239,31 @@ Be direct, confident, and data-driven. No markdown. No bullets. Write as flowing
         }
       }
 
+      // ── Fallback: Try Flask proxy (OpenRouter) ──────────────────────────
+      debugPrint('MarketRec: Gemini failed or empty, trying Flask proxy...');
+      final proxyResponse = await http
+          .post(
+            Uri.parse(AppConfig.proxyBaseUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'messages': [
+                {'role': 'user', 'content': prompt},
+              ],
+              'temperature': 0.7,
+              'max_tokens': 300,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
-
-
-              body: jsonEncode({
-                'messages': [
-                  {'role': 'user', 'content': prompt},
-                ],
-                'temperature': 0.7,
-                'max_tokens': 300,
-              }),
-            )
-            .timeout(const Duration(seconds: 30));
-      } else {
-        response = await http
-            .post(
-              Uri.parse(AppConfig.aiBaseUrl),
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ${AppConfig.aiApiKey}',
-              },
-              body: jsonEncode({
-                'model': AppConfig.aiModel,
-                'messages': [
-                  {'role': 'user', 'content': prompt},
-                ],
-                'temperature': 0.7,
-                'max_tokens': 300,
-              }),
-            )
-            .timeout(const Duration(seconds: 30));
-      }
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        String text = '';
-
-        if (AppConfig.useProxyBackend) {
-          if (json['success'] == true) {
-            text = json['content'] as String? ?? '';
+      if (proxyResponse.statusCode == 200) {
+        final json = jsonDecode(proxyResponse.body) as Map<String, dynamic>;
+        if (json['success'] == true) {
+          final text = json['content'] as String? ?? '';
+          if (text.trim().isNotEmpty) {
+            _aiSummary = text.trim();
+            notifyListeners();
+            return;
           }
-        } else {
-          final choices = json['choices'] as List<dynamic>?;
-          if (choices != null && choices.isNotEmpty) {
-            final message = choices[0]['message'] as Map<String, dynamic>?;
-            text = message?['content'] as String? ?? '';
-          }
-        }
-
-        if (text.trim().isNotEmpty) {
-          _aiSummary = text.trim();
-          notifyListeners();
-          return;
         }
       }
 

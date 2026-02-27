@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/crop_model.dart';
+import '../../models/history_model.dart';
 import '../../data/dummy_data.dart';
 import '../../theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../providers/weather_provider.dart';
+import '../../providers/language_provider.dart';
+import '../../providers/history_provider.dart';
 import '../../widgets/weather_strip.dart';
 import '../../widgets/motivational_quote_card.dart';
 import '../../widgets/floating_mic_button.dart';
@@ -69,6 +73,43 @@ class _HomeScreenState extends State<HomeScreen>
     // Simulate AI processing delay
     await Future.delayed(const Duration(milliseconds: 1400));
     if (!mounted) return;
+
+    // ── Save to real history ──────────────────────────────────────────
+    final rng = Random();
+    final now = DateTime.now();
+    final harvestStart = now.add(Duration(days: rng.nextInt(14) + 7));
+    final harvestEnd = harvestStart.add(Duration(days: rng.nextInt(7) + 5));
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final window =
+        '${months[harvestStart.month - 1]} ${harvestStart.day} – '
+        '${months[harvestEnd.month - 1]} ${harvestEnd.day}';
+
+    final entry = HistoryEntry(
+      id: '${now.millisecondsSinceEpoch}',
+      cropName: _selectedCrop!.name,
+      cropEmoji: _selectedCrop!.emoji,
+      location: '${_selectedLocation!.name}, ${_selectedLocation!.state}',
+      harvestWindow: window,
+      pricePerQuintal: (1500 + rng.nextInt(4000)).toDouble(),
+      confidencePct: 70 + rng.nextInt(26), // 70-95%
+      date: now,
+    );
+
+    context.read<HistoryProvider>().addEntry(entry);
+
     setState(() => _isLoading = false);
 
     Navigator.push(
@@ -100,6 +141,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+
     return Scaffold(
       body: Stack(
         children: [
@@ -162,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen>
                             const SizedBox(height: 16),
                             // Crop selection
                             _SectionLabel(
-                              label: 'Select Your Crop',
+                              label: lang.tr('select_crop_home'),
                               emoji: '🌾',
                             ),
                             const SizedBox(height: 8),
@@ -175,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen>
                             const SizedBox(height: 18),
                             // Location selection
                             _SectionLabel(
-                              label: 'Select Location',
+                              label: lang.tr('select_location'),
                               emoji: '📍',
                             ),
                             const SizedBox(height: 8),
@@ -195,6 +238,8 @@ class _HomeScreenState extends State<HomeScreen>
                             _GetRecommendationButton(
                               isLoading: _isLoading,
                               onTap: _getRecommendation,
+                              label: lang.tr('get_recommendation'),
+                              loadingLabel: lang.tr('analyzing_ai'),
                             ),
                             const SizedBox(height: 22),
                             // Motivational quote
@@ -202,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen>
                             const SizedBox(height: 22),
                             // Government Schemes
                             _SectionLabel(
-                              label: 'Govt Schemes For You',
+                              label: lang.tr('govt_schemes'),
                               emoji: '🏛️',
                             ),
                             const SizedBox(height: 8),
@@ -228,6 +273,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildHeader() {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       child: Row(
@@ -237,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Namaste 👋',
+                  lang.tr('home_greeting'),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     color: Colors.white.withValues(alpha: 0.85),
@@ -245,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 Text(
-                  'Welcome to Krishi Mitra AI',
+                  lang.tr('home_welcome'),
                   style: GoogleFonts.poppins(
                     fontSize: 22,
                     color: Colors.white,
@@ -255,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Your AI-powered farming companion 🤖🌱',
+                  lang.tr('home_tagline'),
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.75),
@@ -531,7 +578,15 @@ class _CropGridState extends State<_CropGrid> with TickerProviderStateMixin {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _showAll ? 'Show Less' : 'See All Crops',
+                      _showAll
+                          ? Provider.of<LanguageProvider>(
+                              context,
+                              listen: false,
+                            ).tr('show_less')
+                          : Provider.of<LanguageProvider>(
+                              context,
+                              listen: false,
+                            ).tr('see_all_crops'),
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -600,7 +655,7 @@ class _LocationDropdown extends StatelessWidget {
           dropdownColor: const Color(0xFF2E7D32),
           value: selected,
           hint: Text(
-            '🗺  Select your village / city',
+            '🗺  ${Provider.of<LanguageProvider>(context, listen: false).tr('select_village_hint')}',
             style: GoogleFonts.poppins(
               color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14,
@@ -633,10 +688,14 @@ class _LocationDropdown extends StatelessWidget {
 class _GetRecommendationButton extends StatefulWidget {
   final bool isLoading;
   final VoidCallback onTap;
+  final String label;
+  final String loadingLabel;
 
   const _GetRecommendationButton({
     required this.isLoading,
     required this.onTap,
+    required this.label,
+    required this.loadingLabel,
   });
 
   @override
@@ -711,7 +770,7 @@ class _GetRecommendationButtonState extends State<_GetRecommendationButton>
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Analysing with AI…',
+                        widget.loadingLabel,
                         style: GoogleFonts.poppins(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
@@ -726,7 +785,7 @@ class _GetRecommendationButtonState extends State<_GetRecommendationButton>
                       Icon(Icons.auto_awesome, color: Colors.white, size: 22),
                       const SizedBox(width: 10),
                       Text(
-                        'Get AI Recommendation',
+                        widget.label,
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -743,86 +802,214 @@ class _GetRecommendationButtonState extends State<_GetRecommendationButton>
   }
 }
 
-// ── Government Schemes Section (AgriNewsService — FREE, NO KEY) ─────────────
-class _GovSchemesSection extends StatelessWidget {
+// ── Government Schemes Section (AI-Powered via Gemini) ──────────────────────
+class _GovSchemesSection extends StatefulWidget {
   final String crop;
 
   const _GovSchemesSection({required this.crop});
 
   @override
-  Widget build(BuildContext context) {
-    final schemes = AgriNewsService.getRelevantSchemes(crop);
+  State<_GovSchemesSection> createState() => _GovSchemesSectionState();
+}
 
-    return Column(
-      children: schemes.take(5).map((scheme) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: GestureDetector(
-            onTap: () async {
-              final uri = Uri.parse(scheme.url);
-              try {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              } catch (_) {}
-            },
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+class _GovSchemesSectionState extends State<_GovSchemesSection> {
+  List<GovScheme>? _schemes;
+  bool _isLoading = true;
+  bool _isAI = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSchemes();
+  }
+
+  @override
+  void didUpdateWidget(covariant _GovSchemesSection old) {
+    super.didUpdateWidget(old);
+    if (old.crop != widget.crop) {
+      _fetchSchemes();
+    }
+  }
+
+  Future<void> _fetchSchemes() async {
+    setState(() {
+      _isLoading = true;
+      _isAI = false;
+    });
+
+    // Try AI first
+    final aiSchemes = await AgriNewsService.fetchGovSchemesAI(widget.crop);
+    if (!mounted) return;
+
+    // Check if AI actually returned (not the static fallback)
+    final staticSchemes = AgriNewsService.getRelevantSchemes(widget.crop);
+    final gotAI =
+        aiSchemes.isNotEmpty &&
+        (aiSchemes.length != staticSchemes.length ||
+            aiSchemes.first.name != staticSchemes.first.name);
+
+    setState(() {
+      _schemes = aiSchemes;
+      _isLoading = false;
+      _isAI = gotAI;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Column(
+        children: [
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  color: Colors.white70,
+                  strokeWidth: 2,
+                ),
               ),
-              child: Row(
-                children: [
-                  Text(scheme.emoji, style: const TextStyle(fontSize: 24)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          scheme.name,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          scheme.description,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 11,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.greenAccent.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      scheme.benefit,
-                      style: GoogleFonts.poppins(
-                        color: Colors.greenAccent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 10),
+              Text(
+                'AI finding best schemes…',
+                style: GoogleFonts.poppins(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Shimmer placeholders
+          ...List.generate(
+            3,
+            (_) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                height: 68,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
-        );
-      }).toList(),
+        ],
+      );
+    }
+
+    final schemes = _schemes ?? [];
+    if (schemes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'No schemes found for this crop',
+          style: GoogleFonts.poppins(color: Colors.white60, fontSize: 13),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isAI)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.amberAccent,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'AI-recommended for ${widget.crop}',
+                  style: GoogleFonts.poppins(
+                    color: Colors.amberAccent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ...schemes.map((scheme) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GestureDetector(
+              onTap: () async {
+                final uri = Uri.parse(scheme.url);
+                try {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } catch (_) {}
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(scheme.emoji, style: const TextStyle(fontSize: 24)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            scheme.name,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            scheme.description,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 11,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.greenAccent.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        scheme.benefit,
+                        style: GoogleFonts.poppins(
+                          color: Colors.greenAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }

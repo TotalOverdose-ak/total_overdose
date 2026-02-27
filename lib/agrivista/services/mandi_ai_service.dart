@@ -7,6 +7,7 @@ import '../../config/app_config.dart';
 class MandiAIService {
   // ── Configuration ─────────────────────────────────────────────────────
   static String get _geminiKey => AppConfig.geminiApiKey;
+  static String get _geminiChatKey => AppConfig.geminiChatApiKey;
   static String get _geminiUrl => AppConfig.geminiBaseUrl;
   static String get _geminiModel => AppConfig.geminiModel;
   static String get _proxyUrl => AppConfig.proxyBaseUrl;
@@ -48,10 +49,13 @@ class MandiAIService {
   }
 
   /// Dual fallback: Gemini first, Flask proxy on rate limit.
+  /// [apiKey] allows overriding the default key (e.g. dedicated chat key).
   static Future<String> _callAI(
     List<Map<String, String>> messages, {
     int retries = 3,
+    String? apiKey,
   }) async {
+    final key = apiKey ?? _geminiKey;
     // Try Gemini direct
     for (int attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -59,7 +63,7 @@ class MandiAIService {
           await Future.delayed(Duration(seconds: 3 * attempt));
           debugPrint('MandiAIService: Gemini retry $attempt');
         }
-        return await _callGeminiDirect(messages);
+        return await _callGeminiDirect(messages, apiKey: key);
       } catch (e) {
         final isRateLimit =
             e.toString().contains('429') ||
@@ -80,21 +84,23 @@ class MandiAIService {
     // Last resort: wait then retry Gemini
     await Future.delayed(const Duration(seconds: 8));
     try {
-      return await _callGeminiDirect(messages);
+      return await _callGeminiDirect(messages, apiKey: key);
     } catch (_) {}
     throw Exception('AI unavailable. Please wait 30 seconds and try again.');
   }
 
   /// Call Gemini directly (OpenAI-compatible endpoint).
   static Future<String> _callGeminiDirect(
-    List<Map<String, String>> messages,
-  ) async {
+    List<Map<String, String>> messages, {
+    String? apiKey,
+  }) async {
+    final key = apiKey ?? _geminiKey;
     final response = await http
         .post(
           Uri.parse(_geminiUrl),
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_geminiKey',
+            'Authorization': 'Bearer $key',
           },
           body: jsonEncode({
             'model': _geminiModel,
@@ -148,6 +154,75 @@ class MandiAIService {
       return text.trim();
     }
     throw Exception(json['error'] ?? 'Proxy error');
+  }
+
+  /// Call Gemini using native REST API (for standard Google API keys like AIzaSy...).
+  /// This uses the generateContent endpoint with ?key= param.
+  static Future<String> _callGeminiNative(
+    List<Map<String, String>> messages, {
+    required String apiKey,
+  }) async {
+    // Convert OpenAI-style messages to Gemini native format
+    final contents = <Map<String, dynamic>>[];
+    String? systemInstruction;
+
+    for (final msg in messages) {
+      final role = msg['role'] ?? 'user';
+      final content = msg['content'] ?? '';
+      if (role == 'system') {
+        systemInstruction = content;
+        continue;
+      }
+      contents.add({
+        'role': role == 'assistant' ? 'model' : 'user',
+        'parts': [
+          {'text': content},
+        ],
+      });
+    }
+
+    final body = <String, dynamic>{
+      'contents': contents,
+      'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 512},
+    };
+
+    if (systemInstruction != null) {
+      body['systemInstruction'] = {
+        'parts': [
+          {'text': systemInstruction},
+        ],
+      };
+    }
+
+    final url =
+        'https://generativelanguage.googleapis.com/v1beta/models/$_geminiModel:generateContent?key=$apiKey';
+
+    final response = await http
+        .post(
+          Uri.parse(url),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 429 ||
+        (response.statusCode == 403 &&
+            response.body.contains('RESOURCE_EXHAUSTED'))) {
+      throw Exception('429: Gemini rate limited');
+    }
+    if (response.statusCode != 200) {
+      throw Exception('Gemini Native ${response.statusCode}: ${response.body}');
+    }
+
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final candidates = json['candidates'] as List<dynamic>?;
+    if (candidates == null || candidates.isEmpty) {
+      throw Exception('No AI response');
+    }
+    final parts = candidates[0]['content']?['parts'] as List<dynamic>?;
+    final text = parts?.firstOrNull?['text'] as String? ?? '';
+    if (text.trim().isEmpty) throw Exception('Empty AI response');
+    return text.trim();
   }
 
   // ── Translation ──────────────────────────────────────────────────────────
@@ -381,8 +456,43 @@ If you're unsure about exact prices, give a reasonable estimate based on typical
         'MandiAIService.chat: Sending ${messages.length} messages to Gemini',
       );
 
-      final result = await _callAI(messages, retries: 3);
-      return result;
+      String firstError = '';
+
+      // ── Attempt 1: Native Gemini API with chat key ──────────────────
+      try {
+        debugPrint('Chat: trying native Gemini API with chat key...');
+        final result = await _callGeminiNative(
+          messages,
+          apiKey: _geminiChatKey,
+        );
+        return result;
+      } catch (e) {
+        firstError = e.toString();
+        debugPrint('Chat native Gemini failed: $e');
+      }
+
+      // ── Attempt 2: OpenAI-compatible endpoint with chat key ─────────
+      try {
+        debugPrint('Chat: trying OpenAI endpoint with chat key...');
+        final result = await _callGeminiDirect(
+          messages,
+          apiKey: _geminiChatKey,
+        );
+        return result;
+      } catch (e) {
+        debugPrint('Chat OpenAI endpoint failed: $e');
+      }
+
+      // ── Attempt 3: Flask proxy ──────────────────────────────────────
+      try {
+        debugPrint('Chat: trying Flask proxy...');
+        return await _callFlaskProxy(messages);
+      } catch (e) {
+        debugPrint('Chat Flask proxy failed: $e');
+      }
+
+      // All failed — throw the FIRST error so user sees real issue
+      throw Exception(firstError);
     } catch (e) {
       debugPrint('MandiAIService.chat error: $e');
       return _chatErrorFallback(language, e.toString());

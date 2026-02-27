@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Multi-language provider for the entire app UI.
 /// Supports 10 Indian languages + English.
@@ -7,10 +8,26 @@ class LanguageProvider extends ChangeNotifier {
 
   String get currentLanguage => _currentLanguage;
 
+  static const _langKey = 'selected_language';
+
+  /// Load saved language from SharedPreferences.
+  Future<void> initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_langKey);
+    if (saved != null && _translations.containsKey(saved)) {
+      _currentLanguage = saved;
+      notifyListeners();
+    }
+  }
+
   void setLanguage(String lang) {
     if (lang != _currentLanguage && _translations.containsKey(lang)) {
       _currentLanguage = lang;
       notifyListeners();
+      // Persist asynchronously
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString(_langKey, lang);
+      });
     }
   }
 
@@ -75,7 +92,8 @@ class LanguageProvider extends ChangeNotifier {
       'ask_placeholder': 'Ask about prices, tips, storage...',
       'thinking': 'Thinking...',
       'ai_assistant': 'AI Market Assistant',
-      'ai_subtitle': 'Ask about prices, quality, storage,\nnegotiation tips — in any language!',
+      'ai_subtitle':
+          'Ask about prices, quality, storage,\nnegotiation tips — in any language!',
       'updated': 'Updated',
       'fetching': 'Fetching...',
       'items': 'items',
@@ -122,13 +140,15 @@ class LanguageProvider extends ChangeNotifier {
       // Harvest Prediction
       'nav_harvest': 'Harvest',
       'harvest_title': 'Harvest Prediction',
-      'harvest_subtitle': 'AI predicts your optimal harvest window using weather, crop maturity & price trends',
+      'harvest_subtitle':
+          'AI predicts your optimal harvest window using weather, crop maturity & price trends',
       'predict_harvest': 'Predict Best Harvest Window',
       'predicting': 'Analyzing...',
       'best_harvest_window': 'Best Harvest Window',
       'confidence': 'Confidence',
       'day_by_day_scores': '10-Day Harvest Score',
-      'score_explanation': 'Each day scored on rain, temperature, wind & price trend',
+      'score_explanation':
+          'Each day scored on rain, temperature, wind & price trend',
       'ai_harvest_advice': 'AI Harvest Advisor',
       'crop_maturity_info': 'Crop Maturity Info',
       'crop': 'Crop',
@@ -147,7 +167,8 @@ class LanguageProvider extends ChangeNotifier {
       // Market Recommendation
       'nav_best_market': 'Best Mkt',
       'market_rec_title': 'Best Market Finder',
-      'market_rec_subtitle': 'AI finds the most profitable market for your crop — factoring in net price, travel cost, volatility & competition',
+      'market_rec_subtitle':
+          'AI finds the most profitable market for your crop — factoring in net price, travel cost, volatility & competition',
       'select_crop_to_sell': 'Select Crop to Sell',
       'your_location': 'Your Location',
       'find_best_market': 'Find Best Market 🎯',
@@ -165,14 +186,16 @@ class LanguageProvider extends ChangeNotifier {
       'price_stability': 'Price Stability',
       'low_competition': 'Low Competition',
       'all_markets_ranked': 'All Markets Ranked',
-      'ranked_explanation': 'Scored on net price (40%), regional advantage (25%), stability (20%), competition (15%)',
+      'ranked_explanation':
+          'Scored on net price (40%), regional advantage (25%), stability (20%), competition (15%)',
       'net': 'Net',
       'modal': 'Modal',
       'vol': 'Vol',
 
       // Spoilage Prevention Ranking
       'preservation_ranking': 'Spoilage Prevention Ranking',
-      'preservation_subtitle': 'Actions ranked by cost-effectiveness — best value first',
+      'preservation_subtitle':
+          'Actions ranked by cost-effectiveness — best value first',
       'action': 'Action',
       'cost_col': 'Cost',
       'effectiveness': 'Effect %',
@@ -205,7 +228,54 @@ class LanguageProvider extends ChangeNotifier {
       'non_perishable': 'Non-perishable',
       'est_spoilage': 'Est. Spoilage',
       'spoilage_risk': 'Spoilage Risk',
-      'high_spoilage_warning': 'High spoilage risk! Consider cold transport or sell to a closer market.',
+      'high_spoilage_warning':
+          'High spoilage risk! Consider cold transport or sell to a closer market.',
+
+      // Home Screen
+      'home_greeting': 'Namaste 👋',
+      'home_welcome': 'Welcome to Krishi Mitra AI',
+      'home_tagline': 'Your AI-powered farming companion 🤖🌱',
+      'select_crop_home': 'Select Your Crop',
+      'select_location': 'Select Location',
+      'select_village_hint': 'Select your village / city',
+      'get_recommendation': 'Get AI Recommendation',
+      'analyzing_ai': 'Analysing with AI…',
+      'see_all_crops': 'See All Crops',
+      'show_less': 'Show Less',
+      'govt_schemes': 'Govt Schemes For You',
+
+      // History
+      'history_title': 'My History',
+      'no_history': 'No history yet',
+      'no_history_hint': 'Your AI recommendations will appear here',
+      'clear_history_title': 'Clear History?',
+      'clear_history_msg': 'This will delete all your past recommendations.',
+      'clear_btn': 'Clear All',
+
+      // Auth / Onboarding
+      'login_title': 'Welcome Back!',
+      'login_subtitle': 'Login with your phone & PIN',
+      'phone_number': 'Phone Number',
+      'phone_error': 'Enter 10-digit phone number',
+      'pin': '4-Digit PIN',
+      'pin_error': 'Enter 4-digit PIN',
+      'pin_mismatch': 'PINs do not match',
+      'login_btn': 'Login',
+      'login_failed': 'Wrong phone or PIN. Try again.',
+      'new_farmer': 'New farmer?',
+      'signup_link': 'Sign Up',
+      'signup_title': 'Create Account',
+      'signup_subtitle': 'Join Agri Vista — your farming partner',
+      'farmer_name': 'Your Name',
+      'farmer_name_hint': 'e.g. Ramu Kaka',
+      'name_error': 'Please enter your name',
+      'village': 'Village / City',
+      'village_hint': 'e.g. Nagpur',
+      'confirm_pin': 'Confirm PIN',
+      'signup_btn': 'Create Account',
+      'signup_failed': 'Signup failed. Check all fields.',
+      'already_account': 'Already have account?',
+      'login_link': 'Login',
 
       // Common
       'loading': 'Loading...',
@@ -231,7 +301,8 @@ class LanguageProvider extends ChangeNotifier {
       'ask_placeholder': 'भाव, सुझाव, भंडारण के बारे में पूछें...',
       'thinking': 'सोच रहा हूँ...',
       'ai_assistant': 'AI बाज़ार सहायक',
-      'ai_subtitle': 'भाव, गुणवत्ता, भंडारण,\nमोल-भाव सुझाव पूछें — किसी भी भाषा में!',
+      'ai_subtitle':
+          'भाव, गुणवत्ता, भंडारण,\nमोल-भाव सुझाव पूछें — किसी भी भाषा में!',
       'updated': 'अपडेट',
       'fetching': 'लोड हो रहा...',
       'items': 'आइटम',
@@ -271,7 +342,8 @@ class LanguageProvider extends ChangeNotifier {
       // Harvest
       'nav_harvest': 'कटाई',
       'harvest_title': 'कटाई भविष्यवाणी',
-      'harvest_subtitle': 'AI मौसम, फसल परिपक्वता और भाव के आधार पर सबसे अच्छा कटाई समय बताता है',
+      'harvest_subtitle':
+          'AI मौसम, फसल परिपक्वता और भाव के आधार पर सबसे अच्छा कटाई समय बताता है',
       'predict_harvest': 'कटाई का सही समय जानें',
       'predicting': 'विश्लेषण हो रहा...',
       'best_harvest_window': 'सर्वश्रेष्ठ कटाई समय',
@@ -296,7 +368,8 @@ class LanguageProvider extends ChangeNotifier {
       // Market Recommendation
       'nav_best_market': 'बेस्ट मार्केट',
       'market_rec_title': 'सबसे अच्छा बाज़ार',
-      'market_rec_subtitle': 'AI आपकी फसल के लिए सबसे फायदेमंद मंडी ढूंढता है — भाव, ट्रांसपोर्ट, उतार-चढ़ाव और प्रतिस्पर्धा को ध्यान में रखकर',
+      'market_rec_subtitle':
+          'AI आपकी फसल के लिए सबसे फायदेमंद मंडी ढूंढता है — भाव, ट्रांसपोर्ट, उतार-चढ़ाव और प्रतिस्पर्धा को ध्यान में रखकर',
       'select_crop_to_sell': 'बेचने के लिए फसल चुनें',
       'your_location': 'आपका स्थान',
       'find_best_market': 'सबसे अच्छा बाज़ार खोजें 🎯',
@@ -314,14 +387,16 @@ class LanguageProvider extends ChangeNotifier {
       'price_stability': 'भाव स्थिरता',
       'low_competition': 'कम प्रतिस्पर्धा',
       'all_markets_ranked': 'सभी मंडियाँ (रैंक)',
-      'ranked_explanation': 'शुद्ध भाव (40%), क्षेत्रीय लाभ (25%), स्थिरता (20%), प्रतिस्पर्धा (15%) पर स्कोर',
+      'ranked_explanation':
+          'शुद्ध भाव (40%), क्षेत्रीय लाभ (25%), स्थिरता (20%), प्रतिस्पर्धा (15%) पर स्कोर',
       'net': 'शुद्ध',
       'modal': 'मोडल',
       'vol': 'उतार',
 
       // Spoilage Prevention
       'preservation_ranking': 'खराबी रोकथाम रैंकिंग',
-      'preservation_subtitle': 'लागत-प्रभावशीलता के अनुसार क्रमबद्ध — सबसे अच्छा पहले',
+      'preservation_subtitle':
+          'लागत-प्रभावशीलता के अनुसार क्रमबद्ध — सबसे अच्छा पहले',
       'action': 'कार्रवाई',
       'cost_col': 'लागत',
       'effectiveness': 'प्रभाव %',
@@ -354,7 +429,54 @@ class LanguageProvider extends ChangeNotifier {
       'non_perishable': 'टिकाऊ',
       'est_spoilage': 'अनुमानित हानि',
       'spoilage_risk': 'खराबी जोखिम',
-      'high_spoilage_warning': 'खराबी जोखिम अधिक! कोल्ड ट्रांसपोर्ट या नज़दीकी मंडी चुनें।',
+      'high_spoilage_warning':
+          'खराबी जोखिम अधिक! कोल्ड ट्रांसपोर्ट या नज़दीकी मंडी चुनें।',
+
+      // Home Screen
+      'home_greeting': 'नमस्ते 👋',
+      'home_welcome': 'कृषि मित्र AI में आपका स्वागत है',
+      'home_tagline': 'AI-संचालित खेती सहायक 🤖🌱',
+      'select_crop_home': 'अपनी फसल चुनें',
+      'select_location': 'स्थान चुनें',
+      'select_village_hint': 'अपना गाँव / शहर चुनें',
+      'get_recommendation': 'AI सिफारिश लें',
+      'analyzing_ai': 'AI विश्लेषण हो रहा…',
+      'see_all_crops': 'सभी फसलें देखें',
+      'show_less': 'कम दिखाएं',
+      'govt_schemes': 'सरकारी योजनाएं',
+
+      // History
+      'history_title': 'मेरा इतिहास',
+      'no_history': 'अभी कोई इतिहास नहीं',
+      'no_history_hint': 'आपकी AI सिफारिशें यहाँ दिखेंगी',
+      'clear_history_title': 'इतिहास मिटाएं?',
+      'clear_history_msg': 'इससे आपकी सभी पुरानी सिफारिशें हट जाएंगी।',
+      'clear_btn': 'सब मिटाएं',
+
+      // Auth / Onboarding
+      'login_title': 'वापस आइए!',
+      'login_subtitle': 'फ़ोन और PIN से लॉगिन करें',
+      'phone_number': 'फ़ोन नंबर',
+      'phone_error': '10 अंकों का फ़ोन नंबर डालें',
+      'pin': '4-अंकों का PIN',
+      'pin_error': '4 अंकों का PIN डालें',
+      'pin_mismatch': 'PIN मेल नहीं खाता',
+      'login_btn': 'लॉगिन करें',
+      'login_failed': 'गलत फ़ोन या PIN। फिर से कोशिश करें।',
+      'new_farmer': 'नए किसान?',
+      'signup_link': 'साइन अप करें',
+      'signup_title': 'खाता बनाएं',
+      'signup_subtitle': 'एग्री विस्टा से जुड़ें — आपका खेती का साथी',
+      'farmer_name': 'आपका नाम',
+      'farmer_name_hint': 'जैसे रामू काका',
+      'name_error': 'कृपया अपना नाम लिखें',
+      'village': 'गाँव / शहर',
+      'village_hint': 'जैसे नागपुर',
+      'confirm_pin': 'PIN पुष्टि करें',
+      'signup_btn': 'खाता बनाएं',
+      'signup_failed': 'साइनअप विफल। सभी फ़ील्ड जाँचें।',
+      'already_account': 'पहले से खाता है?',
+      'login_link': 'लॉगिन करें',
 
       'loading': 'लोड हो रहा...',
       'error': 'त्रुटि',
@@ -379,7 +501,8 @@ class LanguageProvider extends ChangeNotifier {
       'ask_placeholder': 'Rate, tips, storage ke baare mein pucho...',
       'thinking': 'Soch raha hai...',
       'ai_assistant': 'AI Market Assistant',
-      'ai_subtitle': 'Rate, quality, storage, bargaining\ntips pucho — kisi bhi bhasha mein!',
+      'ai_subtitle':
+          'Rate, quality, storage, bargaining\ntips pucho — kisi bhi bhasha mein!',
       'updated': 'Updated',
       'fetching': 'Fetching...',
       'items': 'items',
@@ -419,7 +542,8 @@ class LanguageProvider extends ChangeNotifier {
       // Harvest
       'nav_harvest': 'Harvest',
       'harvest_title': 'Harvest Prediction',
-      'harvest_subtitle': 'AI weather, fasal maturity aur price trend se best harvesting time batata hai',
+      'harvest_subtitle':
+          'AI weather, fasal maturity aur price trend se best harvesting time batata hai',
       'predict_harvest': 'Best Harvest Time Jaano',
       'predicting': 'Analyze ho raha hai...',
       'best_harvest_window': 'Best Harvest Window',
@@ -444,7 +568,8 @@ class LanguageProvider extends ChangeNotifier {
       // Market Recommendation
       'nav_best_market': 'Best Mkt',
       'market_rec_title': 'Best Market Finder',
-      'market_rec_subtitle': 'AI tumhari fasal ke liye sabse profitable mandi dhundhta hai — net price, transport, volatility aur competition dekh ke',
+      'market_rec_subtitle':
+          'AI tumhari fasal ke liye sabse profitable mandi dhundhta hai — net price, transport, volatility aur competition dekh ke',
       'select_crop_to_sell': 'Bechne ke liye Fasal Chuno',
       'your_location': 'Tumhara Location',
       'find_best_market': 'Best Market Dhundho 🎯',
@@ -462,14 +587,16 @@ class LanguageProvider extends ChangeNotifier {
       'price_stability': 'Price Stability',
       'low_competition': 'Low Competition',
       'all_markets_ranked': 'Sab Markets Ranked',
-      'ranked_explanation': 'Net price (40%), regional advantage (25%), stability (20%), competition (15%) pe score',
+      'ranked_explanation':
+          'Net price (40%), regional advantage (25%), stability (20%), competition (15%) pe score',
       'net': 'Net',
       'modal': 'Modal',
       'vol': 'Vol',
 
       // Spoilage Prevention
       'preservation_ranking': 'Spoilage Prevention Ranking',
-      'preservation_subtitle': 'Cost-effectiveness ke hisaab se ranked — sabse achha pehle',
+      'preservation_subtitle':
+          'Cost-effectiveness ke hisaab se ranked — sabse achha pehle',
       'action': 'Action',
       'cost_col': 'Cost',
       'effectiveness': 'Effect %',
@@ -502,7 +629,55 @@ class LanguageProvider extends ChangeNotifier {
       'non_perishable': 'Tikau',
       'est_spoilage': 'Est. Spoilage',
       'spoilage_risk': 'Spoilage Risk',
-      'high_spoilage_warning': 'Spoilage risk zyada hai! Cold transport use karo ya paas ki mandi mein becho.',
+      'high_spoilage_warning':
+          'Spoilage risk zyada hai! Cold transport use karo ya paas ki mandi mein becho.',
+
+      // Home Screen
+      'home_greeting': 'Namaste 👋',
+      'home_welcome': 'Krishi Mitra AI mein Swagat',
+      'home_tagline': 'AI-powered kheti ka saathi 🤖🌱',
+      'select_crop_home': 'Apni Fasal Chuno',
+      'select_location': 'Location Chuno',
+      'select_village_hint': 'Apna gaon / city chuno',
+      'get_recommendation': 'AI Recommendation Lo',
+      'analyzing_ai': 'AI se analyse ho raha…',
+      'see_all_crops': 'Sab Fasal Dekho',
+      'show_less': 'Kam Dikhao',
+      'govt_schemes': 'Sarkari Yojnaein',
+
+      // History
+      'history_title': 'Mera History',
+      'no_history': 'Abhi koi history nahi',
+      'no_history_hint': 'Tumhari AI recommendations yahan dikhegi',
+      'clear_history_title': 'History mitao?',
+      'clear_history_msg':
+          'Isse tumhari sab purani recommendations hat jayegi.',
+      'clear_btn': 'Sab Mitao',
+
+      // Auth / Onboarding
+      'login_title': 'Wapas Aao!',
+      'login_subtitle': 'Phone aur PIN se login karo',
+      'phone_number': 'Phone Number',
+      'phone_error': '10-digit phone number daalo',
+      'pin': '4-Digit PIN',
+      'pin_error': '4-digit PIN daalo',
+      'pin_mismatch': 'PIN match nahi kar raha',
+      'login_btn': 'Login Karo',
+      'login_failed': 'Galat phone ya PIN. Phir try karo.',
+      'new_farmer': 'Naye kisan?',
+      'signup_link': 'Sign Up Karo',
+      'signup_title': 'Account Banao',
+      'signup_subtitle': 'Agri Vista se judo — tumhara kheti ka saathi',
+      'farmer_name': 'Tumhara Naam',
+      'farmer_name_hint': 'Jaise Ramu Kaka',
+      'name_error': 'Apna naam likho',
+      'village': 'Gaon / City',
+      'village_hint': 'Jaise Nagpur',
+      'confirm_pin': 'PIN Confirm Karo',
+      'signup_btn': 'Account Banao',
+      'signup_failed': 'Signup fail. Sab fields check karo.',
+      'already_account': 'Pehle se account hai?',
+      'login_link': 'Login Karo',
 
       'loading': 'Loading...',
       'error': 'Error',
@@ -527,7 +702,8 @@ class LanguageProvider extends ChangeNotifier {
       'ask_placeholder': 'भाव, टिप्स, साठवणुकीबद्दल विचारा...',
       'thinking': 'विचार करत आहे...',
       'ai_assistant': 'AI बाजार सहाय्यक',
-      'ai_subtitle': 'भाव, गुणवत्ता, साठवणूक,\nभाव करण्याचे टिप्स — कोणत्याही भाषेत!',
+      'ai_subtitle':
+          'भाव, गुणवत्ता, साठवणूक,\nभाव करण्याचे टिप्स — कोणत्याही भाषेत!',
       'updated': 'अपडेट',
       'fetching': 'लोड होत आहे...',
       'items': 'वस्तू',
@@ -587,7 +763,8 @@ class LanguageProvider extends ChangeNotifier {
       'ask_placeholder': 'விலை, குறிப்பு, சேமிப்பு பற்றி கேளுங்கள்...',
       'thinking': 'யோசிக்கிறேன்...',
       'ai_assistant': 'AI சந்தை உதவியாளர்',
-      'ai_subtitle': 'விலை, தரம், சேமிப்பு,\nபேரம் குறிப்புகள் — எந்த மொழியிலும்!',
+      'ai_subtitle':
+          'விலை, தரம், சேமிப்பு,\nபேரம் குறிப்புகள் — எந்த மொழியிலும்!',
       'godown_title': '🏭 ஸ்மார்ட் கிடங்கு',
       'godown_subtitle': 'AI பயிர் சேமிப்பு ஆலோசகர்',
       'select_crop': 'பயிர் தேர்வு',

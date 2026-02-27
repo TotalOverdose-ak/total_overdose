@@ -22,6 +22,10 @@ class AppConfig {
   static const String geminiBaseUrl =
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
+  // Separate Gemini key for Mandi AI Chat (avoids rate-limiting the main key)
+  static const String geminiChatApiKey =
+      'AIzaSyBMNKcE8Eral7GNgT6mmrKq6gkr08XF2tc';
+
   // Flask proxy config (FALLBACK — when Gemini rate limited)
   // Android emulator: 10.0.2.2, Real device: use PC's IP
   static const String proxyBaseUrl = 'http://10.0.2.2:5000/api/chat';

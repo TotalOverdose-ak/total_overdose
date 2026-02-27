@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../data/dummy_data.dart';
+import 'package:provider/provider.dart';
+import '../providers/history_provider.dart';
+import '../providers/language_provider.dart';
 import '../models/history_model.dart';
 import '../theme/app_colors.dart';
 
@@ -9,7 +11,9 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entries = DummyData.historyEntries;
+    final history = context.watch<HistoryProvider>();
+    final lang = context.watch<LanguageProvider>();
+    final entries = history.entries;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -17,7 +21,7 @@ class HistoryScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF2E7D32),
         elevation: 0,
         title: Text(
-          'My History',
+          lang.tr('history_title'),
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w700,
@@ -25,129 +29,192 @@ class HistoryScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.white),
-            onPressed: () {},
-          ),
+          if (entries.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.white),
+              tooltip: 'Clear history',
+              onPressed: () => _confirmClear(context, history, lang),
+            ),
         ],
       ),
       body: entries.isEmpty
-          ? _EmptyHistory()
+          ? _EmptyHistory(lang: lang)
           : ListView.separated(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(14),
               itemCount: entries.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, i) => _HistoryCard(entry: entries[i]),
+              itemBuilder: (_, i) => _HistoryCard(
+                entry: entries[i],
+                onDelete: () => history.deleteEntry(entries[i].id),
+              ),
             ),
+    );
+  }
+
+  void _confirmClear(
+    BuildContext context,
+    HistoryProvider history,
+    LanguageProvider lang,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(lang.tr('clear_history_title')),
+        content: Text(lang.tr('clear_history_msg')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(lang.tr('cancel')),
+          ),
+          TextButton(
+            onPressed: () {
+              history.clearAll();
+              Navigator.pop(ctx);
+            },
+            child: Text(
+              lang.tr('clear_btn'),
+              style: const TextStyle(color: AppColors.riskHigh),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _HistoryCard extends StatelessWidget {
   final HistoryEntry entry;
+  final VoidCallback onDelete;
 
-  const _HistoryCard({required this.entry});
+  const _HistoryCard({required this.entry, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
+    // Format date
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final dateStr =
+        '${months[entry.date.month - 1]} ${entry.date.day}, ${entry.date.year}';
+
+    return Dismissible(
+      key: Key(entry.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onDelete(),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: AppColors.riskHigh.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(20),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                // Crop icon circle
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.mintGreen,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      entry.cropEmoji,
-                      style: const TextStyle(fontSize: 26),
-                    ),
+        ),
+        child: const Icon(Icons.delete_rounded, color: AppColors.riskHigh),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardWhite,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.07),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              // Crop icon circle
+              Container(
+                width: 52,
+                height: 52,
+                decoration: const BoxDecoration(
+                  color: AppColors.mintGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    entry.cropEmoji,
+                    style: const TextStyle(fontSize: 26),
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            entry.cropName,
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: AppColors.textDark,
-                            ),
+              ),
+              const SizedBox(width: 12),
+              // Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          entry.cropName,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: AppColors.textDark,
                           ),
-                          const Spacer(),
-                          _ConfidencePill(pct: entry.confidencePct),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            size: 12,
-                            color: AppColors.textLight,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
+                        ),
+                        const Spacer(),
+                        _ConfidencePill(pct: entry.confidencePct),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 12,
+                          color: AppColors.textLight,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
                             entry.location,
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: AppColors.textLight,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          _InfoChip(
-                            icon: Icons.calendar_today,
-                            label: entry.harvestWindow,
-                            color: AppColors.primaryGreen,
-                          ),
-                          const SizedBox(width: 8),
-                          _InfoChip(
-                            icon: Icons.sell_outlined,
-                            label:
-                                '₹${entry.pricePerQuintal.toStringAsFixed(0)}/q',
-                            color: AppColors.profit,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        _InfoChip(
+                          icon: Icons.calendar_today,
+                          label: dateStr,
+                          color: AppColors.primaryGreen,
+                        ),
+                        const SizedBox(width: 8),
+                        _InfoChip(
+                          icon: Icons.sell_outlined,
+                          label:
+                              '₹${entry.pricePerQuintal.toStringAsFixed(0)}/q',
+                          color: AppColors.profit,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -232,6 +299,10 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _EmptyHistory extends StatelessWidget {
+  final LanguageProvider lang;
+
+  const _EmptyHistory({required this.lang});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -241,7 +312,7 @@ class _EmptyHistory extends StatelessWidget {
           const Text('📋', style: TextStyle(fontSize: 56)),
           const SizedBox(height: 12),
           Text(
-            'No history yet',
+            lang.tr('no_history'),
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -250,8 +321,12 @@ class _EmptyHistory extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Your AI recommendations will appear here',
-            style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textLight),
+            lang.tr('no_history_hint'),
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: AppColors.textLight,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

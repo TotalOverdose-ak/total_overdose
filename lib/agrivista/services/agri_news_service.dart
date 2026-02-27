@@ -1,12 +1,135 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../../config/app_config.dart';
 
-/// Agriculture News Service — Uses FREE Wikipedia + Wikidata APIs.
-/// Also fetches current agriculture commodity global prices from free sources.
-///
-/// No API key required. Completely free forever.
+/// Agriculture News Service — Uses Wikipedia APIs + Gemini AI.
+/// Government schemes are fetched dynamically via AI.
 class AgriNewsService {
+  /// Fetch government schemes for a crop using Gemini AI.
+  /// Falls back to static list if AI call fails.
+  static Future<List<GovScheme>> fetchGovSchemesAI(String crop) async {
+    try {
+      final prompt =
+          '''You are an Indian agriculture expert. 
+List exactly 5 real Indian government schemes most relevant for a farmer growing "$crop". 
+For each scheme respond ONLY with a JSON array, no extra text:
+[
+  {
+    "name": "Scheme Name",
+    "description": "1-line description in simple Hindi-English mix",
+    "benefit": "Key benefit (e.g. ₹6,000/year)",
+    "emoji": "relevant emoji",
+    "url": "official scheme URL"
+  }
+]
+Only return the JSON array. No markdown, no explanation.''';
+
+      // ── Try Gemini Direct ─────────────────────────────────────────────
+      final geminiResult = await _callGemini(prompt);
+      if (geminiResult != null) {
+        final schemes = _parseSchemes(geminiResult);
+        if (schemes.isNotEmpty) return schemes;
+      }
+
+      // ── Fallback: Flask Proxy ─────────────────────────────────────────
+      final proxyResult = await _callProxy(prompt);
+      if (proxyResult != null) {
+        final schemes = _parseSchemes(proxyResult);
+        if (schemes.isNotEmpty) return schemes;
+      }
+    } catch (e) {
+      debugPrint('GovSchemes AI error: $e');
+    }
+
+    // ── Final fallback: static list ────────────────────────────────────
+    return getRelevantSchemes(crop);
+  }
+
+  /// Call Gemini API directly.
+  static Future<String?> _callGemini(String prompt) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse(AppConfig.geminiBaseUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${AppConfig.geminiApiKey}',
+            },
+            body: jsonEncode({
+              'model': AppConfig.geminiModel,
+              'messages': [
+                {'role': 'user', 'content': prompt},
+              ],
+              'temperature': 0.3,
+              'max_tokens': 1000,
+            }),
+          )
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['choices']?[0]?['message']?['content']?.toString();
+      }
+      debugPrint('Gemini status: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('Gemini call failed: $e');
+    }
+    return null;
+  }
+
+  /// Call Flask proxy (OpenRouter fallback).
+  static Future<String?> _callProxy(String prompt) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse(AppConfig.proxyBaseUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'message': prompt}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['reply']?.toString();
+      }
+    } catch (e) {
+      debugPrint('Proxy call failed: $e');
+    }
+    return null;
+  }
+
+  /// Parse AI response JSON into GovScheme list.
+  static List<GovScheme> _parseSchemes(String raw) {
+    try {
+      // Extract JSON array from response (strip markdown fences if any)
+      var cleaned = raw.trim();
+      if (cleaned.contains('[')) {
+        cleaned = cleaned.substring(cleaned.indexOf('['));
+      }
+      if (cleaned.contains(']')) {
+        cleaned = cleaned.substring(0, cleaned.lastIndexOf(']') + 1);
+      }
+
+      final list = jsonDecode(cleaned) as List<dynamic>;
+      return list
+          .map(
+            (item) => GovScheme(
+              name: item['name']?.toString() ?? 'Scheme',
+              description: item['description']?.toString() ?? '',
+              benefit: item['benefit']?.toString() ?? '',
+              emoji: item['emoji']?.toString() ?? '🏛️',
+              url: item['url']?.toString() ?? 'https://farmer.gov.in',
+            ),
+          )
+          .take(5)
+          .toList();
+    } catch (e) {
+      debugPrint('Scheme parse error: $e');
+      return [];
+    }
+  }
+
   /// Fetch agriculture-related crop facts from Wikipedia.
   /// Returns useful tips and facts for the selected crop.
   static Future<List<CropFact>> fetchCropFacts(String crop) async {
@@ -76,42 +199,104 @@ class AgriNewsService {
     }
   }
 
-  /// Fetch government agriculture scheme information.
-  /// Uses open government data concepts.
+  /// Returns government schemes RELEVANT to the selected crop.
+  /// Each crop category gets targeted schemes (max 5).
   static List<GovScheme> getRelevantSchemes(String crop) {
     final cropLower = crop.toLowerCase();
     final schemes = <GovScheme>[];
 
-    // Always applicable
+    // ── Universal scheme (always relevant) ─────────────────────────────
     schemes.add(
       const GovScheme(
         name: 'PM-KISAN',
-        description: '₹6,000/year direct income support to farmer families',
+        description: '₹6,000/year direct income support to all farmer families',
         benefit: '₹6,000/year',
         emoji: '💰',
         url: 'https://pmkisan.gov.in',
       ),
     );
 
+    // ── Crop insurance (relevant for all crops) ────────────────────────
     schemes.add(
-      const GovScheme(
+      GovScheme(
         name: 'PM Fasal Bima Yojana',
-        description: 'Crop insurance at 1.5-2% premium for Kharif/Rabi crops',
+        description:
+            'Crop insurance at 1.5-2% premium — protects your $crop crop',
         benefit: 'Crop Insurance',
         emoji: '🛡️',
         url: 'https://pmfby.gov.in',
       ),
     );
 
-    // Crop-specific schemes
+    // ── Wheat / Rice / Paddy — MSP & Food Security ─────────────────────
     if (cropLower.contains('wheat') ||
         cropLower.contains('rice') ||
         cropLower.contains('paddy')) {
       schemes.add(
-        const GovScheme(
+        GovScheme(
           name: 'MSP Procurement',
           description:
-              'Minimum Support Price guarantee — sell to govt at fixed rate',
+              'Sell $crop to govt at Minimum Support Price — guaranteed rate',
+          benefit: 'Price Guarantee',
+          emoji: '🏪',
+          url: 'https://farmer.gov.in',
+        ),
+      );
+      schemes.add(
+        GovScheme(
+          name: 'National Food Security Mission',
+          description:
+              'Free seeds, subsidized fertilizers & training for wheat/rice farmers',
+          benefit: 'Free Seeds + Subsidy',
+          emoji: '🌾',
+          url: 'https://nfsm.gov.in',
+        ),
+      );
+    }
+
+    // ── Fruits & Vegetables — Horticulture + Cold Storage ──────────────
+    if (_isFruitOrVeg(cropLower)) {
+      schemes.add(
+        GovScheme(
+          name: 'Mission for Integrated Development of Horticulture',
+          description:
+              'Financial aid for $crop cultivation, cold chains & marketing',
+          benefit: 'Up to ₹50,000/ha',
+          emoji: '🌱',
+          url: 'https://midh.gov.in',
+        ),
+      );
+      schemes.add(
+        GovScheme(
+          name: 'PM Kisan SAMPADA',
+          description:
+              'Subsidy for cold storage & food processing units for $crop',
+          benefit: 'Up to 70% subsidy',
+          emoji: '🏭',
+          url: 'https://mofpi.nic.in',
+        ),
+      );
+    }
+
+    // ── Cotton / Soybean / Groundnut — Oilseeds Mission ────────────────
+    if (cropLower.contains('cotton') ||
+        cropLower.contains('soybean') ||
+        cropLower.contains('groundnut')) {
+      schemes.add(
+        GovScheme(
+          name: 'National Mission on Oilseeds & Oil Palm',
+          description:
+              'Free seeds, input subsidy & technology support for $crop',
+          benefit: 'Input Subsidy',
+          emoji: '🌻',
+          url: 'https://nmoop.gov.in',
+        ),
+      );
+      schemes.add(
+        GovScheme(
+          name: 'MSP Procurement',
+          description:
+              'Sell $crop at Minimum Support Price — govt guaranteed rate',
           benefit: 'Price Guarantee',
           emoji: '🏪',
           url: 'https://farmer.gov.in',
@@ -119,68 +304,89 @@ class AgriNewsService {
       );
     }
 
-    if (_isFruitOrVeg(cropLower)) {
+    // ── Maize / Millets — Nutri Cereals Mission ────────────────────────
+    if (cropLower.contains('maize') ||
+        cropLower.contains('bajra') ||
+        cropLower.contains('jowar') ||
+        cropLower.contains('ragi') ||
+        cropLower.contains('millet')) {
       schemes.add(
-        const GovScheme(
-          name: 'PM Kisan SAMPADA',
+        GovScheme(
+          name: 'National Mission on Nutri Cereals',
           description:
-              'Subsidy for cold storage, food processing units & agri-logistics',
-          benefit: 'Up to 70% subsidy',
-          emoji: '🏭',
-          url: 'https://mofpi.nic.in',
-        ),
-      );
-
-      schemes.add(
-        const GovScheme(
-          name: 'Mission for Integrated Development of Horticulture',
-          description:
-              'Financial assistance for cultivation, cold chains & marketing of fruits/vegetables',
-          benefit: 'Up to ₹50,000/ha',
-          emoji: '🌱',
-          url: 'https://midh.gov.in',
+              'Subsidized seeds & training for millets and coarse cereals',
+          benefit: 'Seed + Training Subsidy',
+          emoji: '🌽',
+          url: 'https://nfsm.gov.in',
         ),
       );
     }
 
-    if (cropLower.contains('cotton') ||
-        cropLower.contains('soybean') ||
-        cropLower.contains('groundnut')) {
+    // ── Sugarcane ──────────────────────────────────────────────────────
+    if (cropLower.contains('sugarcane')) {
       schemes.add(
-        const GovScheme(
-          name: 'National Mission on Oilseeds & Oil Palm',
+        GovScheme(
+          name: 'Fair & Remunerative Price (FRP)',
           description:
-              'Technology mission for oilseed crops — free seeds, subsidy on inputs',
-          benefit: 'Input Subsidy',
-          emoji: '🌻',
-          url: 'https://nmoop.gov.in',
+              'Govt-mandated minimum price for sugarcane at sugar mills',
+          benefit: 'FRP Guarantee',
+          emoji: '🍬',
+          url: 'https://farmer.gov.in',
         ),
       );
     }
 
-    schemes.add(
-      const GovScheme(
-        name: 'Kisan Credit Card',
-        description:
-            'Short-term crop loans at 4% interest (with timely repayment)',
-        benefit: '4% interest loan',
-        emoji: '💳',
-        url: 'https://www.nabard.org',
-      ),
-    );
+    // ── Pulses — Lentils, Chana, Moong ─────────────────────────────────
+    if (cropLower.contains('dal') ||
+        cropLower.contains('chana') ||
+        cropLower.contains('moong') ||
+        cropLower.contains('lentil') ||
+        cropLower.contains('pulse') ||
+        cropLower.contains('gram')) {
+      schemes.add(
+        GovScheme(
+          name: 'National Food Security Mission — Pulses',
+          description:
+              'Subsidized seeds, equipment & training for pulse farmers',
+          benefit: 'Free Seeds + Aid',
+          emoji: '🫘',
+          url: 'https://nfsm.gov.in',
+        ),
+      );
+    }
 
+    // ── Spices — Chilli, Turmeric ──────────────────────────────────────
+    if (cropLower.contains('chilli') ||
+        cropLower.contains('turmeric') ||
+        cropLower.contains('pepper') ||
+        cropLower.contains('ginger') ||
+        cropLower.contains('garlic')) {
+      schemes.add(
+        GovScheme(
+          name: 'Spices Board Subsidy Scheme',
+          description:
+              'Export promotion & quality improvement subsidy for $crop',
+          benefit: 'Export Subsidy',
+          emoji: '🌶️',
+          url: 'https://www.indianspices.com',
+        ),
+      );
+    }
+
+    // ── eNAM (applicable if farmer wants to sell online) ───────────────
     schemes.add(
-      const GovScheme(
+      GovScheme(
         name: 'eNAM - National Agri Market',
         description:
-            'Sell produce online to any mandi in India — transparent auction',
+            'Sell $crop online to any mandi in India — transparent auction',
         benefit: 'Pan-India Market',
         emoji: '📲',
         url: 'https://enam.gov.in',
       ),
     );
 
-    return schemes;
+    // Limit to 5 most relevant
+    return schemes.take(5).toList();
   }
 
   static bool _isFruitOrVeg(String crop) {

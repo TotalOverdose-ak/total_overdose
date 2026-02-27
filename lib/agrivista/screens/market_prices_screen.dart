@@ -168,15 +168,20 @@ class _PricesTab extends StatelessWidget {
                 updatedText,
                 style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
               ),
-              const Spacer(),
-              if (mandi.errorMessage != null)
-                Text(
-                  mandi.errorMessage!,
-                  style: GoogleFonts.poppins(
-                    color: Colors.yellow.shade200,
-                    fontSize: 10,
+              if (mandi.errorMessage != null) ...[
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    mandi.errorMessage!,
+                    style: GoogleFonts.poppins(
+                      color: Colors.yellow.shade200,
+                      fontSize: 10,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
+              ],
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
